@@ -1,0 +1,66 @@
+cabal-version:      2.4
+name:               hasql-interpolate
+version:            0.1.0.0
+
+author: Travis Staton <hello@travisstaton.com>
+category: Hasql, Database, PostgreSQL
+copyright: 2021, Travis Staton
+extra-source-files: CHANGELOG.md
+homepage: https://github.com/tstat/hasql-interpolate
+license-file: LICENSE
+license: BSD-3-Clause
+maintainer: Travis Staton <hello@travisstaton.com>
+synopsis: QuasiQuoter that supports expression interpolation for hasql
+
+library
+    exposed-modules:  Hasql.Interpolate
+                      Hasql.Interpolate.Internal.Json
+                      Hasql.Interpolate.Internal.Encoder
+                      Hasql.Interpolate.Internal.Decoder
+                      Hasql.Interpolate.Internal.Decoder.TH
+                      Hasql.Interpolate.Internal.TH
+                      Hasql.Interpolate.Internal.Sql
+                      Hasql.Interpolate.Internal.CompositeValue
+                      Hasql.Interpolate.Internal.EncodeRow
+                      Hasql.Interpolate.Internal.EncodeRow.TH
+
+    build-depends:    base >= 4.14
+                    , hasql ^>= 1.4
+                    , haskell-src-meta ^>= 0.8
+                    , template-haskell >= 2.14
+                    , megaparsec >= 8.0.0
+                    , text
+                    , time
+                    , uuid
+                    , scientific
+                    , aeson
+                    , transformers
+                    , mtl
+                    , vector
+                    , containers
+                    , bytestring
+                    , array
+
+    hs-source-dirs:   lib
+    default-language: Haskell2010
+    ghc-options:
+      -Wall
+      -Wcompat
+      -Widentities
+      -Wincomplete-record-updates
+      -Wincomplete-uni-patterns
+      -Wredundant-constraints
+      -Wpartial-fields
+      -O2
+
+test-suite unit
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  build-depends: base
+               , hasql
+               , hasql-interpolate
+               , template-haskell
+               , tasty
+               , text
+               , tasty-hunit
+  hs-source-dirs: test
