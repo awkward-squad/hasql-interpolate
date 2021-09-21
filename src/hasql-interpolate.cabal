@@ -11,6 +11,12 @@ license-file: LICENSE
 license: BSD-3-Clause
 maintainer: Travis Staton <hello@travisstaton.com>
 synopsis: QuasiQuoter that supports expression interpolation for hasql
+description:
+
+  @hasql-interpolate@ provides a sql QuasiQuoter for hasql that
+  supports interpolation of haskell expressions and splicing of sql
+  snippets. A number of type classes are also provided to reduce
+  encoder/decoder boilerplate.
 
 library
     exposed-modules:  Hasql.Interpolate
@@ -24,7 +30,7 @@ library
                       Hasql.Interpolate.Internal.EncodeRow
                       Hasql.Interpolate.Internal.EncodeRow.TH
 
-    build-depends:    base >= 4.14
+    build-depends:    base >= 4.14 && < 5
                     , hasql ^>= 1.4
                     , haskell-src-meta ^>= 0.8
                     , template-haskell >= 2.14
@@ -64,3 +70,4 @@ test-suite unit
                , text
                , tasty-hunit
   hs-source-dirs: test
+  default-language: Haskell2010
