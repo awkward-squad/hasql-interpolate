@@ -46,12 +46,10 @@ newtype AsJsonb a = AsJsonb a
 -- | Parse a postgres @jsonb@ using 'jsonb'
 instance DecodeValue Jsonb where
   decodeValue = coerce D.jsonb
-  {-# INLINE decodeValue #-}
 
 -- | Parse a postgres @json@ using 'json'
 instance DecodeValue Json where
   decodeValue = coerce D.json
-  {-# INLINE decodeValue #-}
 
 -- | Parse a postgres @json@ to anything that is an instance of
 -- 'Aeson.FromJSON'
@@ -66,19 +64,15 @@ instance Aeson.FromJSON a => DecodeValue (AsJsonb a) where
 -- | Encode an Aeson 'Aeson.Value' to a postgres @json@ using 'json'
 instance EncodeValue Json where
   encodeValue = coerce E.json
-  {-# INLINE encodeValue #-}
 
 -- | Encode an Aeson 'Aeson.Value' to a postgres @jsonb@ using 'jsonb'
 instance EncodeValue Jsonb where
   encodeValue = coerce E.jsonb
-  {-# INLINE encodeValue #-}
 
 -- | Encode anything that is an instance of 'Aeson.ToJSON' to a postgres @json@
 instance Aeson.ToJSON a => EncodeValue (AsJson a) where
   encodeValue = BL.toStrict . Aeson.encode . coerce @_ @a >$< E.jsonBytes
-  {-# INLINE encodeValue #-}
 
 -- | Encode anything that is an instance of 'Aeson.ToJSON' to a postgres @jsonb@
 instance Aeson.ToJSON a => EncodeValue (AsJsonb a) where
   encodeValue = BL.toStrict . Aeson.encode . coerce @_ @a >$< E.jsonbBytes
-  {-# INLINE encodeValue #-}

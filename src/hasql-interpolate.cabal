@@ -23,6 +23,8 @@ library
                       Hasql.Interpolate.Internal.Json
                       Hasql.Interpolate.Internal.Encoder
                       Hasql.Interpolate.Internal.Decoder
+                      Hasql.Interpolate.Internal.OneColumn
+                      Hasql.Interpolate.Internal.OneRow
                       Hasql.Interpolate.Internal.Decoder.TH
                       Hasql.Interpolate.Internal.TH
                       Hasql.Interpolate.Internal.Sql

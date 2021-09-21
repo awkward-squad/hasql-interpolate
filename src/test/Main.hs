@@ -11,7 +11,6 @@
 module Main where
 
 import Control.Exception
-import Data.Functor.Identity
 import Data.Int
 import Data.Text (Text)
 import GHC.Generics (Generic)
@@ -121,7 +120,7 @@ testComposite = do
   withLocalTransaction \conn -> do
     let expected = [Point 0 0, Point 1 1]
     res <- run conn [sql| select * from (values (row(0,0)), (row(1,1)) ) as t |]
-    res @?= map Identity expected
+    res @?= map OneColumn expected
 
 data T = T Int64 Bool Text deriving stock (Eq, Show)
 

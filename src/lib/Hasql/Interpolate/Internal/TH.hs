@@ -232,7 +232,6 @@ sqlExprParser = go
       ]
 
     someSql = do
-      notFollowedBy eof
       s <- anySingle
       content <- takeWhileP (Just "sql") (\c -> IS.notMember (fromEnum c) breakCharsIS)
       appendSqlBuilderExp (Sbe'Sql (s : content))
