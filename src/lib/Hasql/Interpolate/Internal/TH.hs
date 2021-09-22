@@ -36,7 +36,19 @@ import Hasql.Interpolate.Internal.Sql
 import Language.Haskell.Meta (parseExp)
 import Language.Haskell.TH
 import Language.Haskell.TH.Quote
-import Text.Megaparsec (ParseErrorBundle, Parsec, anySingle, chunk, eof, errorBundlePretty, notFollowedBy, runParser, single, takeWhileP)
+import Text.Megaparsec
+  ( ParseErrorBundle,
+    Parsec,
+    anySingle,
+    chunk,
+    eof,
+    errorBundlePretty,
+    notFollowedBy,
+    runParser,
+    single,
+    takeWhileP,
+    try,
+  )
 
 data SqlExpr = SqlExpr
   { sqlBuilderExp :: [SqlBuilderExp],
@@ -153,30 +165,33 @@ sqlExprParser = go
       void $ takeWhileP (Just "multiline comment") (\c -> c /= '*' && c /= '/')
       (multilineCommentBegin >> multilineCommentEnd) <|> void (chunk "*/")
 
+    escapedContent name terminal escapeChar escapeParser =
+      let loop sofar = do
+            content <- takeWhileP (Just name) (\c -> c /= terminal && c /= escapeChar)
+            notFollowedBy eof
+            (try escapeParser >>= \esc -> loop (sofar . (content ++) . (esc ++)))
+              <|> (single terminal $> sofar content)
+       in loop id
+
+    betwixt name initial terminal escapeChar escapeParser = do
+      _ <- chunk initial
+      escapedContent name terminal escapeChar escapeParser
+
     quoted = do
-      _ <- single '\''
-      content <- takeWhileP (Just "quoted") (/= '\'')
-      _ <- single '\''
+      content <- betwixt "single quotes" "'" '\'' '\'' (chunk "''")
       appendSqlBuilderExp (Sbe'Quote content)
       go
 
-    consumeEscapeString s = do
-      content <- takeWhileP (Just "C-style escape quote") (\c -> c /= '\\' && c /= '\'')
-      anySingle >>= \case
-        '\'' -> pure (s content)
-        '\\' -> do
-          e <- anySingle
-          consumeEscapeString (s . (content ++) . (\rest -> '\\' : e : rest))
-        _ -> error "impossible"
-
     cquoted = do
-      _ <- chunk "E'"
-      appendSqlBuilderExp . Sbe'Cquote =<< consumeEscapeString id
+      content <- betwixt "C-style escape quote" "E'" '\'' '\\' do
+        a <- single '\\'
+        b <- anySingle
+        pure [a, b]
+      appendSqlBuilderExp (Sbe'Cquote content)
+      go
 
     ident = do
-      _ <- single '"'
-      content <- takeWhileP (Just "identifier") (/= '"')
-      _ <- single '"'
+      content <- betwixt "identifier" "\"" '"' '"' (chunk "\"\"")
       appendSqlBuilderExp (Sbe'Ident content)
       go
 

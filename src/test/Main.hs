@@ -60,15 +60,15 @@ testParseQuotes = do
       expectedSqlExpr =
         [ Sbe'Quote "#{bonk}",
           Sbe'Sql " ",
-          Sbe'Quote "^{zonk}",
+          Sbe'Quote "^{z''onk}",
           Sbe'Sql " ",
-          Sbe'Ident "#{konk}",
+          Sbe'Ident "#{k\"\"onk}",
           Sbe'Sql " ",
           Sbe'DollarQuote "tag" "#{kiplonk}",
           Sbe'Sql " ",
           Sbe'Cquote "newline \\n escaped \\'string\\'"
         ]
-  parseSqlExpr "'#{bonk}' '^{zonk}' \"#{konk}\" $tag$#{kiplonk}$tag$ E'newline \\n escaped \\'string\\''" @?= Right expected
+  parseSqlExpr "'#{bonk}' '^{z''onk}' \"#{k\"\"onk}\" $tag$#{kiplonk}$tag$ E'newline \\n escaped \\'string\\''" @?= Right expected
 
 testParseComment :: IO ()
 testParseComment = do
