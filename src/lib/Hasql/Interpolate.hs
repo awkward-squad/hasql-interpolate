@@ -21,6 +21,7 @@ module Hasql.Interpolate
     -- * Newtypes for decoding/encoding
     OneRow (..),
     OneColumn (..),
+    RowsAffected (..),
     Json (..),
     Jsonb (..),
     AsJson (..),
@@ -44,6 +45,7 @@ import Hasql.Interpolate.Internal.Encoder
 import Hasql.Interpolate.Internal.Json
 import Hasql.Interpolate.Internal.OneColumn
 import Hasql.Interpolate.Internal.OneRow
+import Hasql.Interpolate.Internal.RowsAffected
 import Hasql.Interpolate.Internal.Sql
 import Hasql.Interpolate.Internal.TH
 import Hasql.Statement (Statement (..))

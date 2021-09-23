@@ -110,8 +110,8 @@ testBasic = do
           ]
     createRes <- run conn [sql| create table hasql_interpolate_test(x int8, y boolean, z int8) |]
     createRes @?= ()
-    insertRes <- run conn [sql| insert into hasql_interpolate_test (x,y,z) select * from ^{toTable relation} |]
-    insertRes @?= (3 :: Int64)
+    RowsAffected insertRes <- run conn [sql| insert into hasql_interpolate_test (x,y,z) select * from ^{toTable relation} |]
+    insertRes @?= 3
     selectRes <- run conn [sql| select x, y, z from hasql_interpolate_test where x > #{0 :: Int64} order by x |]
     selectRes @?= filter (\(x, _, _) -> x > 0) relation
 

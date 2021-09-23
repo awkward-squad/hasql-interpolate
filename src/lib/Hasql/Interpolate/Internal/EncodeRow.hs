@@ -149,4 +149,4 @@ instance EncodeField a => GEncodeRow (K1 i a) where
     k (\(K1 a) b -> a : b) [] (E.param (E.nonNullable (E.foldableArray encodeField))) 1
   {-# INLINE gUnzipWithEncoder #-}
 
-$(genEncodeRowInstances 8)
+$(traverse genEncodeRowInstance [2 .. 8])

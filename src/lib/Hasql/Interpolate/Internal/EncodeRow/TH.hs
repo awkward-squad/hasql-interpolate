@@ -1,7 +1,10 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-module Hasql.Interpolate.Internal.EncodeRow.TH where
+module Hasql.Interpolate.Internal.EncodeRow.TH
+  ( genEncodeRowInstance,
+  )
+where
 
 import Control.Monad
 import Data.Foldable (foldl')
@@ -10,8 +13,8 @@ import qualified Hasql.Encoders as E
 import Hasql.Interpolate.Internal.Encoder (EncodeField (..), EncodeValue (..))
 import Language.Haskell.TH
 
--- | Generate a single 'EncodeRow' instance for a tuple of size
--- @tupSize@
+-- | Generate a single 'Hasql.Interpolate.EncodeRow' instance for a
+-- tuple of size @tupSize@
 genEncodeRowInstance ::
   -- | tuple size
   Int ->
@@ -49,12 +52,6 @@ genEncodeRowInstance tupSize
         kExp = foldl' AppE (VarE innerContName) [kcons, knil, kenc, LitE (IntegerL (fromIntegral tupSize))]
     let instanceBody = FunD unzipWithEncoderName [Clause [VarP innerContName] (NormalB kExp) []]
     pure (InstanceD Nothing context instanceHead [instanceBody])
-
--- | Generate tuple instances for 'EncodeRow' up to tuple size
--- @upTo@
-genEncodeRowInstances :: Int -> Q [Dec]
-genEncodeRowInstances upTo = do
-  traverse genEncodeRowInstance [2 .. upTo]
 
 pluck :: Int -> Int -> Q Exp
 pluck 1 0 = [e|id|]

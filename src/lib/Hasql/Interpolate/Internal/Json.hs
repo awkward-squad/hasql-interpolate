@@ -43,11 +43,11 @@ newtype AsJson a = AsJson a
 -- 'FromJSON' / 'ToJSON'
 newtype AsJsonb a = AsJsonb a
 
--- | Parse a postgres @jsonb@ using 'jsonb'
+-- | Parse a postgres @jsonb@ using 'D.jsonb'
 instance DecodeValue Jsonb where
   decodeValue = coerce D.jsonb
 
--- | Parse a postgres @json@ using 'json'
+-- | Parse a postgres @json@ using 'D.json'
 instance DecodeValue Json where
   decodeValue = coerce D.json
 
@@ -61,11 +61,11 @@ instance Aeson.FromJSON a => DecodeValue (AsJson a) where
 instance Aeson.FromJSON a => DecodeValue (AsJsonb a) where
   decodeValue = AsJsonb <$> D.jsonbBytes (first T.pack . Aeson.eitherDecodeStrict)
 
--- | Encode an Aeson 'Aeson.Value' to a postgres @json@ using 'json'
+-- | Encode an Aeson 'Aeson.Value' to a postgres @json@ using 'E.json'
 instance EncodeValue Json where
   encodeValue = coerce E.json
 
--- | Encode an Aeson 'Aeson.Value' to a postgres @jsonb@ using 'jsonb'
+-- | Encode an Aeson 'Aeson.Value' to a postgres @jsonb@ using 'E.jsonb'
 instance EncodeValue Jsonb where
   encodeValue = coerce E.jsonb
 

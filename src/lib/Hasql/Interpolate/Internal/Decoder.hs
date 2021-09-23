@@ -184,13 +184,8 @@ instance DecodeRow a => DecodeResult (Vector a) where
 instance DecodeRow a => DecodeResult (Maybe a) where
   decodeResult = rowMaybe decodeRow
 
--- | Parse the rows affected from the query result, as in an @insert@,
--- @update@, or @delete@ statement without a returning clause. ('rowsAffected')
-instance DecodeResult Int64 where
-  decodeResult = rowsAffected
-
 -- | Ignore the query response ('noResult')
 instance DecodeResult () where
   decodeResult = noResult
 
-$(genDecodeRowInstances 8)
+$(traverse genDecodeRowInstance [2 .. 8])
