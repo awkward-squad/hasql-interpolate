@@ -6,10 +6,10 @@ author: Travis Staton <hello@travisstaton.com>
 category: Hasql, Database, PostgreSQL
 copyright: 2021, Travis Staton
 extra-source-files: CHANGELOG.md
-homepage: https://github.com/tstat/hasql-interpolate
+homepage: https://github.com/awkward-squad/hasql-interpolate
 license-file: LICENSE
 license: BSD-3-Clause
-maintainer: Travis Staton <hello@travisstaton.com>
+maintainer: Travis Staton <hello@travisstaton.com>, Mitchell Rosen
 synopsis: QuasiQuoter that supports expression interpolation for hasql
 description:
 
