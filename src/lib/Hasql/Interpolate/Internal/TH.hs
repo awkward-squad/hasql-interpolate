@@ -161,7 +161,7 @@ sqlExprParser = go
 
     multilineCommentEnd = do
       void $ takeWhileP (Just "multiline comment") (\c -> c /= '*' && c /= '/')
-      (multilineCommentBegin >> multilineCommentEnd) <|> void (chunk "*/")
+      (multilineCommentBegin >> multilineCommentEnd) <|> void (chunk "*/") <|> (anySingle >> multilineCommentEnd)
 
     escapedContent name terminal escapeChar escapeParser =
       let loop sofar = do

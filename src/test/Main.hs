@@ -82,7 +82,7 @@ testParseComment = do
       inputStr =
         unlines
           [ "content -- trailing comment",
-            "hello /* comment */ world",
+            "hello /* / comment * */ world",
             "/* comment",
             "blerg /* nested comment */",
             "*/ end"
