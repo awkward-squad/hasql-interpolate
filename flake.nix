@@ -4,17 +4,43 @@
   inputs = {
     flake-utils.url = "github:numtide/flake-utils";
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-21.05";
+    flake-compat = {
+      url = "github:edolstra/flake-compat";
+      flake = false;
+    };
   };
 
-  outputs = { self, flake-utils, nixpkgs }:
-    let
-      compiler = "ghc8104";
-      pkgs =
-        nixpkgs.legacyPackages.x86_64-linux.extend self.overlays.haskellOverlay;
-      ghc = pkgs.haskell.packages."${compiler}";
-    in {
-      overlays = {
-        haskellOverlay = final: prev: {
+  outputs = { self, flake-utils, nixpkgs, flake-compat }:
+    flake-utils.lib.eachDefaultSystem (system:
+      let
+        compiler = "ghc8104";
+        pkgs = nixpkgs.legacyPackages."${system}".extend
+          self.overlay;
+        ghc = pkgs.haskell.packages."${compiler}";
+      in {
+        apps.repl = flake-utils.lib.mkApp {
+          drv = nixpkgs.legacyPackages."${system}".writeShellScriptBin "repl" ''
+            confnix=$(mktemp)
+            echo "builtins.getFlake (toString $(git rev-parse --show-toplevel))" >$confnix
+            trap "rm $confnix" EXIT
+            nix repl $confnix
+          '';
+        };
+
+        devShell = ghc.shellFor {
+          withHoogle = true;
+          packages = hpkgs:
+            with hpkgs;
+            with pkgs.haskell.lib;
+            [ (doCheck hasql-interpolate) ];
+        };
+
+        packages = { hasql-interpolate = ghc.hasql-interpolate; };
+        pkgs = pkgs;
+
+        defaultPackage = self.packages."${system}".hasql-interpolate;
+      }) // {
+        overlay = final: prev: {
           haskell = with prev.haskell.lib;
             prev.haskell // {
               packages = let
@@ -39,31 +65,13 @@
                             in !isHiddenFile;
                         in src';
                     in {
-                      hasql-interpolate =
-                        let p  = self.callCabal2nix "hasql-interpolate" (cleanSource ./src) { };
-                        in dontCheck p;
+                      hasql-interpolate = let
+                        p = self.callCabal2nix "hasql-interpolate"
+                          (cleanSource ./src) { };
+                      in dontCheck p;
                     });
               in prev.haskell.packages // patchedGhcs;
             };
         };
       };
-
-      apps.x86_64-linux.repl = flake-utils.lib.mkApp {
-        drv = nixpkgs.legacyPackages.x86_64-linux.writeShellScriptBin "repl" ''
-          confnix=$(mktemp)
-          echo "builtins.getFlake (toString $(git rev-parse --show-toplevel))" >$confnix
-          trap "rm $confnix" EXIT
-          nix repl $confnix
-        '';
-      };
-
-      devShell.x86_64-linux = ghc.shellFor {
-        withHoogle = true;
-        packages = hpkgs: with hpkgs; with pkgs.haskell.lib; [ (doCheck hasql-interpolate) ];
-      };
-
-      packages.x86_64-linux = { };
-
-      defaultPackage.x86_64-linux = self.devShell.x86_64-linux;
-    };
 }
