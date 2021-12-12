@@ -61,13 +61,16 @@
                             src = pth;
                           };
                           filt = path: type:
-                            let isHiddenFile = hasPrefix "." (baseNameOf path);
-                            in !isHiddenFile;
+                            let bn = baseNameOf path;
+                                isHiddenFile = hasPrefix "." bn;
+                                isFlakeLock = bn == "flake.lock";
+                                isNix = hasSuffix ".nix" bn;
+                            in !isHiddenFile && !isFlakeLock && !isNix;
                         in src';
                     in {
                       hasql-interpolate = let
                         p = self.callCabal2nix "hasql-interpolate"
-                          (cleanSource ./src) { };
+                          (cleanSource ./.) { };
                       in dontCheck p;
                     });
               in prev.haskell.packages // patchedGhcs;
