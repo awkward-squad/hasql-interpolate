@@ -35,7 +35,7 @@
           packages = hpkgs:
             with hpkgs;
             with pkgs.haskell.lib;
-            [ (doCheck hasql-interpolate) ];
+            [ hasql-interpolate ];
         };
 
         packages = { hasql-interpolate = ghc.hasql-interpolate; };
@@ -74,7 +74,7 @@
                       hasql-interpolate = let
                         p = self.callCabal2nix "hasql-interpolate"
                           (cleanSource ./.) { };
-                      in dontCheck p;
+                      in p;
                     });
               in prev.haskell.packages // patchedGhcs;
             };

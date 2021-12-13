@@ -73,5 +73,6 @@ test-suite unit
                , tasty
                , text
                , tasty-hunit
+               , tmp-postgres
   hs-source-dirs: test
   default-language: Haskell2010

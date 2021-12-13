@@ -13,6 +13,7 @@ module Main where
 import Control.Exception
 import Data.Int
 import Data.Text (Text)
+import qualified Database.Postgres.Temp as Tmp
 import GHC.Generics (Generic)
 import qualified Hasql.Connection as Hasql
 import Hasql.Decoders (column)
@@ -32,7 +33,7 @@ tests =
   testGroup
     "Tests"
     [ parserTests,
-      executionTests
+      withResource (either (error . show) pure =<< Tmp.startConfig Tmp.defaultConfig) Tmp.stop executionTests
     ]
 
 parserTests :: TestTree
@@ -44,15 +45,17 @@ parserTests =
       testCase "param" testParseParam
     ]
 
-executionTests :: TestTree
-executionTests =
+executionTests :: IO Tmp.DB -> TestTree
+executionTests getDb =
   testGroup
     "execution"
-    [ testCase "basic" testBasic,
-      testCase "composite test" testComposite,
-      testCase "row" testRow,
-      testCase "row generic" testRowGeneric
-    ]
+    ( ($ getDb)
+        <$> [ testCase "basic" . testBasic,
+              testCase "composite test" . testComposite,
+              testCase "row" . testRow,
+              testCase "row generic" . testRowGeneric
+            ]
+    )
 
 testParseQuotes :: IO ()
 testParseQuotes = do
@@ -99,9 +102,9 @@ testParseParam = do
           0
   parseSqlExpr "#{x} #{2}" @?= Right expected
 
-testBasic :: IO ()
-testBasic = do
-  withLocalTransaction \conn -> do
+testBasic :: IO Tmp.DB -> IO ()
+testBasic getDb = do
+  withLocalTransaction getDb \conn -> do
     let relation :: [(Int64, Bool, Int64)]
         relation =
           [ (0, True, 5),
@@ -115,9 +118,9 @@ testBasic = do
     selectRes <- run conn [sql| select x, y, z from hasql_interpolate_test where x > #{0 :: Int64} order by x |]
     selectRes @?= filter (\(x, _, _) -> x > 0) relation
 
-testComposite :: IO ()
-testComposite = do
-  withLocalTransaction \conn -> do
+testComposite :: IO Tmp.DB -> IO ()
+testComposite getDb = do
+  withLocalTransaction getDb \conn -> do
     let expected = [Point 0 0, Point 1 1]
     res <- run conn [sql| select * from (values (row(0,0)), (row(1,1)) ) as t |]
     res @?= map OneColumn expected
@@ -131,31 +134,32 @@ instance DecodeRow T where
       <*> column decodeField
       <*> column decodeField
 
-testRow :: IO ()
-testRow = do
-  withLocalTransaction \conn -> do
+testRow :: IO Tmp.DB -> IO ()
+testRow getDb = do
+  withLocalTransaction getDb \conn -> do
     let expected = [T 0 True "foo", T 1 False "bar"]
     res <- run conn [sql| select * from (values (0,true,'foo'), (1,false,'bar') ) as t |]
     res @?= expected
 
-testRowGeneric :: IO ()
-testRowGeneric = do
-  withLocalTransaction \conn -> do
+testRowGeneric :: IO Tmp.DB -> IO ()
+testRowGeneric getDb = do
+  withLocalTransaction getDb \conn -> do
     let expected = [Point 0 0, Point 1 1]
     res <- run conn [sql| select * from (values (0,0), (1,1) ) as t |]
     res @?= expected
 
-withLocalTransaction :: (Hasql.Connection -> IO a) -> IO a
-withLocalTransaction k = bracket (either (fail . show) pure =<< Hasql.acquire "host=localhost") Hasql.release \conn -> do
-  let beginTrans = do
-        Hasql.run (Hasql.statement () (interp False [sql| begin |])) conn >>= \case
-          Left err -> fail (show err)
-          Right () -> pure ()
-      rollbackTrans = do
-        Hasql.run (Hasql.statement () (interp False [sql| rollback |])) conn >>= \case
-          Left err -> fail (show err)
-          Right () -> pure ()
-  bracket beginTrans (\() -> rollbackTrans) \() -> k conn
+withLocalTransaction :: IO Tmp.DB -> (Hasql.Connection -> IO a) -> IO a
+withLocalTransaction getDb k =
+  getDb >>= \db -> bracket (either (fail . show) pure =<< Hasql.acquire (Tmp.toConnectionString db)) Hasql.release \conn -> do
+    let beginTrans = do
+          Hasql.run (Hasql.statement () (interp False [sql| begin |])) conn >>= \case
+            Left err -> fail (show err)
+            Right () -> pure ()
+        rollbackTrans = do
+          Hasql.run (Hasql.statement () (interp False [sql| rollback |])) conn >>= \case
+            Left err -> fail (show err)
+            Right () -> pure ()
+    bracket beginTrans (\() -> rollbackTrans) \() -> k conn
 
 run :: DecodeResult a => Hasql.Connection -> Sql -> IO a
 run conn stmt = do
