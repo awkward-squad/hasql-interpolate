@@ -3,7 +3,7 @@
 
   inputs = {
     flake-utils.url = "github:numtide/flake-utils";
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-21.05";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-21.11";
     flake-compat = {
       url = "github:edolstra/flake-compat";
       flake = false;
@@ -13,7 +13,7 @@
   outputs = { self, flake-utils, nixpkgs, flake-compat }:
     flake-utils.lib.eachDefaultSystem (system:
       let
-        compiler = "ghc8104";
+        compiler = "ghc8107";
         pkgs = nixpkgs.legacyPackages."${system}".extend
           self.overlay;
         ghc = pkgs.haskell.packages."${compiler}";
@@ -29,6 +29,9 @@
 
         devShell = ghc.shellFor {
           withHoogle = true;
+          buildInputs = [
+            pkgs.postgresql_13
+          ];
           packages = hpkgs:
             with hpkgs;
             with pkgs.haskell.lib;
