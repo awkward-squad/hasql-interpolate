@@ -14,8 +14,7 @@
     flake-utils.lib.eachDefaultSystem (system:
       let
         compiler = "ghc8107";
-        pkgs = nixpkgs.legacyPackages."${system}".extend
-          self.overlay;
+        pkgs = nixpkgs.legacyPackages."${system}".extend self.overlay;
         ghc = pkgs.haskell.packages."${compiler}";
       in {
         apps.repl = flake-utils.lib.mkApp {
@@ -29,9 +28,6 @@
 
         devShell = ghc.shellFor {
           withHoogle = true;
-          buildInputs = [
-            pkgs.postgresql_13
-          ];
           packages = hpkgs:
             with hpkgs;
             with pkgs.haskell.lib;
@@ -39,9 +35,13 @@
         };
 
         packages = { hasql-interpolate = ghc.hasql-interpolate; };
-        pkgs = pkgs;
+
+        nixpkgs = pkgs;
 
         defaultPackage = self.packages."${system}".hasql-interpolate;
+
+        checks = pkgs.lib.attrsets.genAttrs [ "ghc8107" "ghc901" "ghc921" ]
+          (ghc-ver: pkgs.haskell.packages."${ghc-ver}".hasql-interpolate);
       }) // {
         overlay = final: prev: {
           haskell = with prev.haskell.lib;
@@ -64,17 +64,18 @@
                             src = pth;
                           };
                           filt = path: type:
-                            let bn = baseNameOf path;
-                                isHiddenFile = hasPrefix "." bn;
-                                isFlakeLock = bn == "flake.lock";
-                                isNix = hasSuffix ".nix" bn;
+                            let
+                              bn = baseNameOf path;
+                              isHiddenFile = hasPrefix "." bn;
+                              isFlakeLock = bn == "flake.lock";
+                              isNix = hasSuffix ".nix" bn;
                             in !isHiddenFile && !isFlakeLock && !isNix;
                         in src';
                     in {
                       hasql-interpolate = let
                         p = self.callCabal2nix "hasql-interpolate"
                           (cleanSource ./.) { };
-                      in p;
+                      in addTestToolDepends p [ prev.postgresql ];
                     });
               in prev.haskell.packages // patchedGhcs;
             };
