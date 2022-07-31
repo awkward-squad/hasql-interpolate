@@ -10,4 +10,4 @@ boilerplate.
 
 # Documentation
 
-[Hackage documentation](https://hackage.haskell.org/package/hasql-interpolate-0.1.0.2/docs/Hasql-Interpolate.html)
+[Hackage documentation](https://hackage.haskell.org/package/hasql-interpolate/docs/Hasql-Interpolate.html)
