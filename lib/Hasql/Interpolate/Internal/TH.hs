@@ -1,5 +1,6 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE BlockArguments #-}
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NamedFieldPuns #-}
@@ -302,7 +303,7 @@ compileSqlExpr (SqlExpr sqlBuilder enc spliceBindings bindCount) = do
   let spliceDecs =
         map
           ( \SpliceBind {sbBuilder, sbParamEncoder, sbExp} ->
-              ValD (ConP 'Sql (map VarP [nameArr ! sbBuilder, nameArr ! sbParamEncoder])) (NormalB sbExp) []
+              ValD (conP_compat 'Sql (map VarP [nameArr ! sbBuilder, nameArr ! sbParamEncoder])) (NormalB sbExp) []
           )
           spliceBindings
   sqlBuilderExp <-
@@ -324,3 +325,11 @@ compileSqlExpr (SqlExpr sqlBuilder enc spliceBindings bindCount) = do
   pure case spliceDecs of
     [] -> body
     _ -> LetE spliceDecs body
+
+-- In template-haskell-2.18.0.0, the ConP constructor grew a new [Type] field for matching with type applications.
+conP_compat :: Name -> [Pat] -> Pat
+#if MIN_VERSION_template_haskell(2,18,0)
+conP_compat name fields = ConP name [] fields
+#else
+conP_compat name fields = ConP name fields
+#endif
