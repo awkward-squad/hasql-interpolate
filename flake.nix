@@ -75,7 +75,11 @@
                       hasql-interpolate = let
                         p = self.callCabal2nix "hasql-interpolate"
                           (cleanSource ./.) { };
-                      in addTestToolDepends p [ prev.postgresql ];
+                      in overrideCabal p (drv: {
+                        testToolDepends = [ prev.postgresql ];
+                        revision = null;
+                        editedCabalFile = null;
+                      });
                     });
               in prev.haskell.packages // patchedGhcs;
             };
