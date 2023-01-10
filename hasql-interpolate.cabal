@@ -1,7 +1,6 @@
 cabal-version:      2.4
 name:               hasql-interpolate
-version:            0.1.0.3
-x-revision:         1
+version:            0.1.0.4
 
 author: Travis Staton <hello@travisstaton.com>
 category: Hasql, Database, PostgreSQL
@@ -44,7 +43,7 @@ library
                       haskell-src-meta ^>= 0.8,
                       hasql ^>= 1.4 || ^>= 1.5 || ^>= 1.6,
                       megaparsec ^>= 8.0.0 || ^>= 9.0 || ^>= 9.1 || ^>= 9.2 || ^>= 9.3,
-                      mtl ^>= 2.1 || ^>= 2.2,
+                      mtl ^>= 2.1 || ^>= 2.2 || ^>= 2.3,
                       scientific ^>= 0.3,
                       template-haskell ^>= 2.14 || ^>= 2.15 || ^>= 2.16 || ^>= 2.17 || ^>= 2.18 || ^>= 2.19,
                       text ^>= 1.2.4 || ^>= 2.0,

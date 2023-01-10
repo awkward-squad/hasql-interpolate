@@ -21,6 +21,7 @@ module Hasql.Interpolate.Internal.TH
 where
 
 import Control.Applicative
+import Control.Monad (replicateM)
 import Control.Monad.State.Strict
 import Data.Array (listArray, (!))
 import Data.ByteString.Builder (Builder, stringUtf8)
