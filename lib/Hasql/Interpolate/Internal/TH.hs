@@ -22,7 +22,7 @@ where
 
 import Control.Applicative
 import Control.Monad (replicateM)
-import Control.Monad.State.Strict
+import Control.Monad.State.Strict (State, StateT, execStateT, get, put, state)
 import Data.Array (listArray, (!))
 import Data.ByteString.Builder (Builder, stringUtf8)
 import Data.Char
