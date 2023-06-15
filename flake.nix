@@ -3,7 +3,7 @@
 
   inputs = {
     flake-utils.url = "github:numtide/flake-utils";
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-21.11";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-23.05";
     flake-compat = {
       url = "github:edolstra/flake-compat";
       flake = false;
@@ -13,7 +13,7 @@
   outputs = { self, flake-utils, nixpkgs, flake-compat }:
     flake-utils.lib.eachDefaultSystem (system:
       let
-        compiler = "ghc8107";
+        compiler = "ghc928";
         pkgs = nixpkgs.legacyPackages."${system}".extend self.overlay;
         ghc = pkgs.haskell.packages."${compiler}";
       in {
@@ -40,7 +40,7 @@
 
         defaultPackage = self.packages."${system}".hasql-interpolate;
 
-        checks = pkgs.lib.attrsets.genAttrs [ "ghc8107" "ghc901" "ghc921" ]
+        checks = pkgs.lib.attrsets.genAttrs [ "ghc928" "ghc945" "ghc962" ]
           (ghc-ver: pkgs.haskell.packages."${ghc-ver}".hasql-interpolate);
       }) // {
         overlay = final: prev: {
