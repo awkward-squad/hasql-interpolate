@@ -8,12 +8,13 @@ jobs:
     strategy:
       matrix:
         include:
-          - compiler: ghc8107
-          - compiler: ghc901
+          - compiler: ghc928
+          - compiler: ghc945
+          - compiler: ghc962
     steps:
     - uses: actions/checkout@v2.4.0
     - uses: cachix/install-nix-action@v15
-    
+
     - run: nix -L build ".#checks.x86_64-linux.$GHCVER"
       env:
         GHCVER: ${{ matrix.compiler }}
