@@ -12,8 +12,9 @@ jobs:
           - compiler: ghc945
           - compiler: ghc962
     steps:
-    - uses: actions/checkout@v2.4.0
-    - uses: cachix/install-nix-action@v15
+    - uses: actions/checkout@v3
+    - uses: DeterminateSystems/nix-installer-action@main
+    - uses: DeterminateSystems/magic-nix-cache-action@main
 
     - run: nix -L build ".#checks.x86_64-linux.$GHCVER"
       env:
