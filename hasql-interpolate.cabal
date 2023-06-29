@@ -36,7 +36,7 @@ library
                       Hasql.Interpolate.Internal.EncodeRow
                       Hasql.Interpolate.Internal.EncodeRow.TH
 
-    build-depends:    aeson ^>= 1.5 || ^>= 2.0 || ^>= 2.1,
+    build-depends:    aeson ^>= 1.5 || ^>= 2.0 || ^>= 2.1 || ^>= 2.2,
                       array ^>= 0.5,
                       base ^>= 4.14 || ^>= 4.15 || ^>= 4.16 || ^>= 4.17 || ^>= 4.18,
                       bytestring ^>= 0.10 || ^>= 0.11,
