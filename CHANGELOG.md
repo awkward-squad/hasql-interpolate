@@ -1,3 +1,7 @@
+## 0.2.0.0 -- 2023-08-17
+
+* Relax context of tuple instances for `EncodeRow` from `EncodeValue` to `EncodeField` (https://github.com/awkward-squad/hasql-interpolate/pull/9)
+
 ## 0.1.0.4 -- 2023-01-10
 
 * Support `mtl-2.3`
