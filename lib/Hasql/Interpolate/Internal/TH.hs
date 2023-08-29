@@ -319,9 +319,9 @@ compileSqlExpr (SqlExpr sqlBuilder enc spliceBindings bindCount) = do
      in foldr go [e|pure mempty|] sqlBuilder
   encExp <-
     let go a b = case a of
-          Pe'Exp x -> [e|$(pure x) >$ E.param encodeField <> $b|]
+          Pe'Exp x -> [e|($(pure x) >$ E.param encodeField) <> $b|]
           Pe'Var x -> [e|$(varE (nameArr ! x)) <> $b|]
-     in foldr go [e|mempty|] enc
+     in foldr go [e|E.noParams|] enc
   body <- [e|Sql (getAp $(pure sqlBuilderExp)) $(pure encExp)|]
   pure case spliceDecs of
     [] -> body

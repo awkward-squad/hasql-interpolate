@@ -53,7 +53,8 @@ executionTests getDb =
         <$> [ testCase "basic" . testBasic,
               testCase "composite test" . testComposite,
               testCase "row" . testRow,
-              testCase "row generic" . testRowGeneric
+              testCase "row generic" . testRowGeneric,
+              testCase "snippet" . testSnippet
             ]
     )
 
@@ -146,6 +147,15 @@ testRowGeneric getDb = do
   withLocalTransaction getDb \conn -> do
     let expected = [Point 0 0, Point 1 1]
     res <- run conn [sql| select * from (values (0,0), (1,1) ) as t |]
+    res @?= expected
+
+testSnippet :: IO Tmp.DB -> IO ()
+testSnippet getDb = do
+  withLocalTransaction getDb \conn -> do
+    let expected = [Point 0 0]
+    let snippet = [sql| t.y = 0 |]
+    let xVal :: Int64 = 0
+    res <- run conn [sql| select * from (values (0,0), (1,1) ) as t(x,y) where t.x = #{xVal} and ^{snippet} |]
     res @?= expected
 
 withLocalTransaction :: IO Tmp.DB -> (Hasql.Connection -> IO a) -> IO a
