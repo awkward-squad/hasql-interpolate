@@ -10,7 +10,6 @@ jobs:
         include:
           - compiler: ghc928
           - compiler: ghc947
-          - compiler: ghc963
     steps:
     - uses: actions/checkout@v3
     - uses: DeterminateSystems/nix-installer-action@main
