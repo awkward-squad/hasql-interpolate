@@ -9,7 +9,7 @@ jobs:
       matrix:
         include:
           - compiler: ghc928
-          - compiler: ghc945
+          - compiler: ghc947
     steps:
     - uses: actions/checkout@v3
     - uses: DeterminateSystems/nix-installer-action@main

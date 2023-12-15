@@ -3,7 +3,7 @@
 
   inputs = {
     flake-utils.url = "github:numtide/flake-utils";
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-23.05";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-23.11";
     flake-compat = {
       url = "github:edolstra/flake-compat";
       flake = false;
@@ -14,7 +14,7 @@
     flake-utils.lib.eachDefaultSystem
       (system:
         let
-          compiler = "ghc928";
+          compiler = "ghc963";
           pkgs = nixpkgs.legacyPackages."${system}".extend self.overlay;
           ghc = pkgs.haskell.packages."${compiler}";
         in
@@ -29,7 +29,7 @@
           };
 
           devShell = ghc.shellFor {
-            withHoogle = true;
+            withHoogle = false;
             packages = hpkgs:
               with hpkgs;
               with pkgs.haskell.lib;
@@ -42,7 +42,7 @@
 
           defaultPackage = self.packages."${system}".hasql-interpolate;
 
-          checks = pkgs.lib.attrsets.genAttrs [ "ghc928" "ghc945" "ghc962" ]
+          checks = pkgs.lib.attrsets.genAttrs [ "ghc928" "ghc947" "ghc963" ]
             (ghc-ver: pkgs.haskell.packages."${ghc-ver}".hasql-interpolate);
         }) // {
       overlay = final: prev: {
@@ -88,6 +88,9 @@
                           sha256 = "sha256-SRMDtXEBp+4B4/kESdsVT0Ul6AWd1REsSrvIP0WCEOw=";
                         }
                         { };
+                      generic-monoid = doJailbreak super.generic-monoid;
+                      postgresql-libpq = doJailbreak super.postgresql-libpq;
+                      tagged = doJailbreak super.tagged;
                       hasql-interpolate =
                         let
                           p = self.callCabal2nix "hasql-interpolate"
