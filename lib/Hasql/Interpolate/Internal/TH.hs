@@ -43,6 +43,7 @@ import Text.Megaparsec
     anySingle,
     chunk,
     eof,
+    errorBundlePretty,
     notFollowedBy,
     runParser,
     single,
@@ -291,7 +292,7 @@ sql =
   QuasiQuoter
     { quoteExp = \str -> do
         case parseSqlExpr str of
-          Left err -> fail (show err)
+          Left err -> fail (errorBundlePretty err)
           Right sqlExpr -> compileSqlExpr sqlExpr,
       quotePat = undefined,
       quoteType = undefined,
