@@ -1,3 +1,7 @@
+## Unreleased
+
+* Make compile-time syntax error messages prettier
+
 ## 0.2.1.0 -- 2023-08-29
 
 * Fix encoder generation bug (https://github.com/awkward-squad/hasql-interpolate/pull/10)
