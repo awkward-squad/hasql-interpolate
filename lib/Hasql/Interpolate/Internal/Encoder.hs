@@ -1,4 +1,5 @@
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE ImportQualifiedPost #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE UndecidableInstances #-}
@@ -9,6 +10,10 @@ module Hasql.Interpolate.Internal.Encoder
   )
 where
 
+import Data.ByteString (ByteString)
+import Data.ByteString.Lazy (LazyByteString)
+import Data.ByteString.Lazy qualified as ByteString.Lazy
+import Data.Functor.Contravariant (contramap)
 import Data.Int
 import Data.Scientific (Scientific)
 import Data.Text (Text)
@@ -97,6 +102,14 @@ instance EncodeValue DiffTime where
 -- | Encode a 'UUID' as a postgres @uuid@ using 'uuid'
 instance EncodeValue UUID where
   encodeValue = uuid
+
+-- | Encode a 'ByteString' as a postgres @bytea@ using 'bytea'
+instance EncodeValue ByteString where
+  encodeValue = bytea
+
+-- | Encode a 'LazyByteString' as a postgres @bytea@ using 'bytea'
+instance EncodeValue LazyByteString where
+  encodeValue = contramap ByteString.Lazy.toStrict bytea
 
 -- | You do not need to define instances for this class; The two
 -- instances exported here cover all uses. The class only exists to
