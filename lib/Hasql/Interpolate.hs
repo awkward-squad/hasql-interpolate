@@ -24,6 +24,8 @@ module Hasql.Interpolate
     RowsAffected (..),
     Json (..),
     Jsonb (..),
+    JsonBytes (..),
+    JsonbBytes (..),
     AsJson (..),
     AsJsonb (..),
     CompositeValue (..),
