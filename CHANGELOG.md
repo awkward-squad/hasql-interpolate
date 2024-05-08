@@ -2,6 +2,7 @@
 
 * Make compile-time syntax error messages prettier
 * Add `EncodeValue` instances for `ByteString` and `LazyByteString`
+* Add `JsonBytes` and `JsonbBytes` newtypes
 
 ## 0.2.1.0 -- 2023-08-29
 
