@@ -26,6 +26,6 @@ genDecodeRowInstance tupSize
         go b _a = do
           [e|$(b) <*> column decodeField|]
 
-    instanceBodyExp <- foldl' go [e|$(pure tupSection) <$> column decodeField|] (tail tyVars)
+    instanceBodyExp <- foldl' go [e|$(pure tupSection) <$> column decodeField|] (drop 1 tyVars)
     let instanceBody = FunD (mkName "decodeRow") [Clause [] (NormalB instanceBodyExp) []]
     pure (InstanceD Nothing context instanceHead [instanceBody])
