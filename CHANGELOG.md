@@ -1,4 +1,4 @@
-## Unreleased
+## 0.2.2.0 -- 2024-05-07
 
 * Make compile-time syntax error messages prettier
 * Add `EncodeValue` instances for `ByteString` and `LazyByteString`
