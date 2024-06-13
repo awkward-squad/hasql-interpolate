@@ -21,6 +21,7 @@ import Data.Time (Day, DiffTime, LocalTime, UTCTime)
 import Data.UUID (UUID)
 import Data.Vector (Vector)
 import Hasql.Encoders
+import Network.IP.Addr
 
 -- | This type class determines which encoder we will apply to a field
 -- by its type.
@@ -102,6 +103,10 @@ instance EncodeValue DiffTime where
 -- | Encode a 'UUID' as a postgres @uuid@ using 'uuid'
 instance EncodeValue UUID where
   encodeValue = uuid
+
+-- | Encode a 'NetAddr IP' as a postgres @uuid@ using 'uuid'
+instance EncodeValue (NetAddr IP) where
+  encodeValue = inet
 
 -- | Encode a 'ByteString' as a postgres @bytea@ using 'bytea'
 instance EncodeValue ByteString where
