@@ -26,6 +26,7 @@ import Data.Text (Text)
 import Data.Time (Day, DiffTime, LocalTime, UTCTime)
 import Data.UUID (UUID)
 import Data.Vector (Vector)
+import Network.IP.Addr
 import GHC.Generics
 import Hasql.Decoders
 import Hasql.Interpolate.Internal.Decoder.TH
@@ -163,6 +164,10 @@ instance DecodeValue DiffTime where
 -- | Parse a postgres @uuid@ using 'uuid'
 instance DecodeValue UUID where
   decodeValue = uuid
+
+-- | Parse a postgres @inet@ using 'inet'
+instance DecodeValue (NetAddr IP) where
+  decodeValue = inet
 
 -- | Overlappable instance for parsing non-nullable values
 instance {-# OVERLAPPABLE #-} DecodeValue a => DecodeField a where
