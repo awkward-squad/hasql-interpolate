@@ -28,12 +28,16 @@
             '';
           };
 
-          devShell = ghc.shellFor {
+          devShells.default = ghc.shellFor {
             withHoogle = false;
             packages = hpkgs:
               with hpkgs;
               with pkgs.haskell.lib;
-              [ hasql-interpolate ];
+              [ hasql-interpolate 
+              ];
+            buildInputs = [
+              pkgs.cabal-install
+            ];
           };
 
           packages = { hasql-interpolate = ghc.hasql-interpolate; };
@@ -78,16 +82,6 @@
                         src';
                     in
                     {
-                      # nixos-23.05 provides postgresql-simple 0.6.4,
-                      # which has bounds on base and template-haskell
-                      # that are too tight for ghc 9.4 and up.
-                      postgresql-simple = super.callHackageDirect
-                        {
-                          pkg = "postgresql-simple";
-                          ver = "0.6.5";
-                          sha256 = "sha256-SRMDtXEBp+4B4/kESdsVT0Ul6AWd1REsSrvIP0WCEOw=";
-                        }
-                        { };
                       generic-monoid = doJailbreak super.generic-monoid;
                       postgresql-libpq = doJailbreak super.postgresql-libpq;
                       tagged = doJailbreak super.tagged;
