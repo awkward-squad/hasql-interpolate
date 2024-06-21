@@ -193,4 +193,4 @@ instance DecodeRow a => DecodeResult (Maybe a) where
 instance DecodeResult () where
   decodeResult = noResult
 
-$(traverse genDecodeRowInstance [2 .. 8])
+$(traverse genDecodeRowInstance [2 .. 16])
