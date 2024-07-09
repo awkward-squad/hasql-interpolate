@@ -14,6 +14,7 @@ import Data.ByteString (ByteString)
 import Data.ByteString.Lazy (LazyByteString)
 import Data.ByteString.Lazy qualified as ByteString.Lazy
 import Data.Functor.Contravariant (contramap)
+import Data.IP (IPRange)
 import Data.Int
 import Data.Scientific (Scientific)
 import Data.Text (Text)
@@ -21,7 +22,6 @@ import Data.Time (Day, DiffTime, LocalTime, UTCTime)
 import Data.UUID (UUID)
 import Data.Vector (Vector)
 import Hasql.Encoders
-import Network.IP.Addr
 
 -- | This type class determines which encoder we will apply to a field
 -- by its type.
@@ -41,11 +41,11 @@ class EncodeValue a where
   encodeValue :: Value a
 
 -- | Encode a list as a postgres array using 'foldableArray'
-instance EncodeField a => EncodeValue [a] where
+instance (EncodeField a) => EncodeValue [a] where
   encodeValue = foldableArray encodeField
 
 -- | Encode a 'Vector' as a postgres array using 'foldableArray'
-instance EncodeField a => EncodeValue (Vector a) where
+instance (EncodeField a) => EncodeValue (Vector a) where
   encodeValue = foldableArray encodeField
 
 -- | Encode a 'Bool' as a postgres @boolean@ using 'bool'
@@ -104,8 +104,8 @@ instance EncodeValue DiffTime where
 instance EncodeValue UUID where
   encodeValue = uuid
 
--- | Encode a 'NetAddr IP' as a postgres @uuid@ using 'uuid'
-instance EncodeValue (NetAddr IP) where
+-- | Encode an 'IPRange' as a postgres @inet@ using 'inet'
+instance EncodeValue IPRange where
   encodeValue = inet
 
 -- | Encode a 'ByteString' as a postgres @bytea@ using 'bytea'
@@ -123,9 +123,9 @@ class EncodeField a where
   encodeField :: NullableOrNot Value a
 
 -- | Overlappable instance for all non-nullable types.
-instance {-# OVERLAPPABLE #-} EncodeValue a => EncodeField a where
+instance {-# OVERLAPPABLE #-} (EncodeValue a) => EncodeField a where
   encodeField = nonNullable encodeValue
 
 -- | Instance for all nullable types. 'Nothing' is encoded as @null@.
-instance EncodeValue a => EncodeField (Maybe a) where
+instance (EncodeValue a) => EncodeField (Maybe a) where
   encodeField = nullable encodeValue

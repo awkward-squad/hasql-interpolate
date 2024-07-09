@@ -20,13 +20,13 @@ module Hasql.Interpolate.Internal.Decoder
   )
 where
 
+import Data.IP (IPRange)
 import Data.Int
 import Data.Scientific (Scientific)
 import Data.Text (Text)
 import Data.Time (Day, DiffTime, LocalTime, UTCTime)
 import Data.UUID (UUID)
 import Data.Vector (Vector)
-import Network.IP.Addr
 import GHC.Generics
 import Hasql.Decoders
 import Hasql.Interpolate.Internal.Decoder.TH
@@ -92,21 +92,21 @@ class GDecodeRow a where
 class DecodeResult a where
   decodeResult :: Result a
 
-instance GDecodeRow a => GDecodeRow (M1 t i a) where
+instance (GDecodeRow a) => GDecodeRow (M1 t i a) where
   gdecodeRow = M1 <$> gdecodeRow
 
 instance (GDecodeRow a, GDecodeRow b) => GDecodeRow (a :*: b) where
   gdecodeRow = (:*:) <$> gdecodeRow <*> gdecodeRow
 
-instance DecodeField a => GDecodeRow (K1 i a) where
+instance (DecodeField a) => GDecodeRow (K1 i a) where
   gdecodeRow = K1 <$> column decodeField
 
 -- | Parse a postgres @array@ using 'listArray'
-instance DecodeField a => DecodeValue [a] where
+instance (DecodeField a) => DecodeValue [a] where
   decodeValue = listArray decodeField
 
 -- | Parse a postgres @array@ using 'vectorArray'
-instance DecodeField a => DecodeValue (Vector a) where
+instance (DecodeField a) => DecodeValue (Vector a) where
   decodeValue = vectorArray decodeField
 
 -- | Parse a postgres @bool@ using 'bool'
@@ -166,27 +166,27 @@ instance DecodeValue UUID where
   decodeValue = uuid
 
 -- | Parse a postgres @inet@ using 'inet'
-instance DecodeValue (NetAddr IP) where
+instance DecodeValue IPRange where
   decodeValue = inet
 
 -- | Overlappable instance for parsing non-nullable values
-instance {-# OVERLAPPABLE #-} DecodeValue a => DecodeField a where
+instance {-# OVERLAPPABLE #-} (DecodeValue a) => DecodeField a where
   decodeField = nonNullable decodeValue
 
 -- | Instance for parsing nullable values
-instance DecodeValue a => DecodeField (Maybe a) where
+instance (DecodeValue a) => DecodeField (Maybe a) where
   decodeField = nullable decodeValue
 
 -- | Parse any number of rows into a list ('rowList')
-instance DecodeRow a => DecodeResult [a] where
+instance (DecodeRow a) => DecodeResult [a] where
   decodeResult = rowList decodeRow
 
 -- | Parse any number of rows into a 'Vector' ('rowVector')
-instance DecodeRow a => DecodeResult (Vector a) where
+instance (DecodeRow a) => DecodeResult (Vector a) where
   decodeResult = rowVector decodeRow
 
 -- | Parse zero or one rows, throw 'Hasql.Errors.UnexpectedAmountOfRows' otherwise. ('rowMaybe')
-instance DecodeRow a => DecodeResult (Maybe a) where
+instance (DecodeRow a) => DecodeResult (Maybe a) where
   decodeResult = rowMaybe decodeRow
 
 -- | Ignore the query response ('noResult')

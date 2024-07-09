@@ -1,7 +1,8 @@
-## Unreleased
+## [1.0.0.0] - July 9, 2024
 
 * Add IP address type encoders and decoders
 * Increase tuple instances to size 16
+* Support `hasql-1.8`
 
 ## [0.2.2.0] - May 7, 2024
 
