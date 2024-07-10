@@ -1,4 +1,4 @@
-## [1.0.0.0] - July 9, 2024
+## [1.0.0.0] - July 10, 2024
 
 * Add IP address type encoders and decoders
 * Increase tuple instances to size 16
