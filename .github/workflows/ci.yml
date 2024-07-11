@@ -8,9 +8,9 @@ jobs:
     strategy:
       matrix:
         include:
-          - compiler: ghc928
-          - compiler: ghc948
           - compiler: ghc965
+          - compiler: ghc982
+          - compiler: ghc9101
     steps:
     - uses: actions/checkout@v3
     - uses: DeterminateSystems/nix-installer-action@main

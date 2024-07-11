@@ -14,7 +14,7 @@
     flake-utils.lib.eachDefaultSystem
       (system:
         let
-          compiler = "ghc965";
+          compiler = "ghc9101";
           pkgs = nixpkgs.legacyPackages."${system}".extend self.overlay;
           ghc = pkgs.haskell.packages."${compiler}";
         in
@@ -49,7 +49,7 @@
 
           defaultPackage = self.packages."${system}".hasql-interpolate;
 
-          checks = pkgs.lib.attrsets.genAttrs [ "ghc928" "ghc948" "ghc965" ]
+          checks = pkgs.lib.attrsets.genAttrs [ "ghc965" "ghc982" "ghc9101" ]
             (ghc-ver: pkgs.haskell.packages."${ghc-ver}".hasql-interpolate);
         }) // {
       overlay = final: prev: {
