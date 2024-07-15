@@ -6,10 +6,12 @@ jobs:
   linux:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         include:
-          - compiler: ghc928
-          - compiler: ghc947
+          - compiler: ghc965
+          - compiler: ghc982
+          - compiler: ghc9101
     steps:
     - uses: actions/checkout@v3
     - uses: DeterminateSystems/nix-installer-action@main
