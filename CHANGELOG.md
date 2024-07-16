@@ -1,3 +1,7 @@
+## [1.0.1.0] - July 16, 2024
+
+* Add `DecodeValue` instance for `ByteString` and `LazyByteString`
+
 ## [1.0.0.0] - July 10, 2024
 
 * Add IP address type encoders and decoders

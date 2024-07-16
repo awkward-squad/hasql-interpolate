@@ -20,17 +20,19 @@ module Hasql.Interpolate.Internal.Decoder
   )
 where
 
+import Data.ByteString (ByteString)
+import Data.ByteString.Lazy (LazyByteString)
+import qualified Data.ByteString.Lazy as LazyByteString
 import Data.IP (IPRange)
-import Data.Int
+import Data.Int (Int16, Int32, Int64)
 import Data.Scientific (Scientific)
 import Data.Text (Text)
 import Data.Time (Day, DiffTime, LocalTime, UTCTime)
 import Data.UUID (UUID)
 import Data.Vector (Vector)
-import Data.ByteString
 import GHC.Generics
 import Hasql.Decoders
-import Hasql.Interpolate.Internal.Decoder.TH
+import Hasql.Interpolate.Internal.Decoder.TH (genDecodeRowInstance)
 
 -- | This type class determines which decoder we will apply to a query
 -- field by the type of the result.
@@ -173,6 +175,10 @@ instance DecodeValue IPRange where
 -- | Parse a postgres @bytea@ using 'bytea'
 instance DecodeValue ByteString where
   decodeValue = bytea
+
+-- | Parse a postgres @bytea@ using 'bytea'
+instance DecodeValue LazyByteString where
+  decodeValue = LazyByteString.fromStrict <$> bytea
 
 -- | Overlappable instance for parsing non-nullable values
 instance {-# OVERLAPPABLE #-} (DecodeValue a) => DecodeField a where
