@@ -1,7 +1,7 @@
 cabal-version:      2.4
 name:               hasql-interpolate
 version:            1.0.1.0
-x-revision:         2
+x-revision:         3
 
 author: Travis Staton, Mitchell Dalvi Rosen
 category: Hasql, Database, PostgreSQL
