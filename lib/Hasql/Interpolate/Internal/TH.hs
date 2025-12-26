@@ -126,9 +126,20 @@ sqlExprParser = go
       pure next
 
     appendSqlBuilderExp :: SqlBuilderExp -> Parser ()
-    appendSqlBuilderExp x = do
-      st <- get
-      put st {ps'sqlBuilderExp = ps'sqlBuilderExp st . (x :)}
+    appendSqlBuilderExp x =
+      case x of
+        -- special case: trim trailing whitespace if at the very end
+        Sbe'Sql s -> do
+          st <- get
+          put
+            st
+              { ps'sqlBuilderExp = \case
+                  [] -> ps'sqlBuilderExp st [Sbe'Sql (dropTrailingWhitespace s)]
+                  xs -> ps'sqlBuilderExp st (x : xs)
+              }
+        _ -> do
+          st <- get
+          put st {ps'sqlBuilderExp = ps'sqlBuilderExp st . (x :)}
 
     appendEncoder :: ParamEncoder -> Parser ()
     appendEncoder x = do
@@ -250,8 +261,21 @@ sqlExprParser = go
     someSql = do
       s <- anySingle
       content <- takeWhileP (Just "sql") (\c -> IS.notMember (fromEnum c) breakCharsIS)
-      appendSqlBuilderExp (Sbe'Sql (s : content))
+      appendSqlBuilderExp (Sbe'Sql (normalizeWhitespace (s : content)))
       go
+
+-- Everywhere in a string, collapse consecutive runs of whitespace to a single space
+--
+-- normalizeWhitespace "   foo\n  \n   \n \t\t bar   " = " foo bar "
+normalizeWhitespace :: String -> String
+normalizeWhitespace = \case
+  x : xs | isSpace x -> ' ' : normalizeWhitespace (dropWhile isSpace xs)
+  x : xs -> x : normalizeWhitespace xs
+  "" -> ""
+
+dropTrailingWhitespace :: String -> String
+dropTrailingWhitespace =
+  reverse . dropWhile isSpace . reverse
 
 addParam :: State Int Builder
 addParam = state \i ->
@@ -260,7 +284,7 @@ addParam = state \i ->
 
 parseSqlExpr :: String -> Either (ParseErrorBundle String Void) SqlExpr
 parseSqlExpr str = do
-  ps <- runParser (execStateT sqlExprParser (ParserState id id id 0)) "" str
+  ps <- runParser (execStateT sqlExprParser (ParserState id id id 0)) "" (dropWhile isSpace str)
   pure
     SqlExpr
       { sqlBuilderExp = ps'sqlBuilderExp ps [],
