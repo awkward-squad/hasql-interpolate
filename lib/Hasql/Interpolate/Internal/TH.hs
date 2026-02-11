@@ -24,12 +24,13 @@ import Control.Applicative
 import Control.Monad (replicateM)
 import Control.Monad.State.Strict (State, StateT, execStateT, get, put, state)
 import Data.Array (listArray, (!))
-import Data.ByteString.Builder (Builder, stringUtf8)
 import Data.Char
 import Data.Functor
 import Data.Functor.Contravariant
 import qualified Data.IntSet as IS
 import Data.Monoid (Ap (..))
+import Data.Text.Lazy.Builder (Builder)
+import qualified Data.Text.Lazy.Builder as Builder
 import Data.Void
 import qualified Hasql.Encoders as E
 import Hasql.Interpolate.Internal.Encoder (EncodeField (..))
@@ -280,7 +281,7 @@ dropTrailingWhitespace =
 addParam :: State Int Builder
 addParam = state \i ->
   let !i' = i + 1
-   in (dollar <> stringUtf8 (show i), i')
+   in (dollar <> Builder.fromString (show i), i')
 
 parseSqlExpr :: String -> Either (ParseErrorBundle String Void) SqlExpr
 parseSqlExpr str = do
@@ -336,11 +337,11 @@ compileSqlExpr (SqlExpr sqlBuilder enc spliceBindings bindCount) = do
     let go a b = case a of
           Sbe'Var i -> [e|Ap $(varE (nameArr ! i)) <> $b|]
           Sbe'Param -> [e|Ap addParam <> $b|]
-          Sbe'Quote content -> [e|pure (sq <> stringUtf8 content <> sq) <> $b|]
-          Sbe'Ident content -> [e|pure (dq <> stringUtf8 content <> dq) <> $b|]
-          Sbe'DollarQuote tag content -> [e|pure (dollar <> stringUtf8 tag <> dollar <> stringUtf8 content <> dollar <> stringUtf8 tag <> dollar) <> $b|]
+          Sbe'Quote content -> [e|pure (sq <> Builder.fromString content <> sq) <> $b|]
+          Sbe'Ident content -> [e|pure (dq <> Builder.fromString content <> dq) <> $b|]
+          Sbe'DollarQuote tag content -> [e|pure (dollar <> Builder.fromString tag <> dollar <> Builder.fromString content <> dollar <> Builder.fromString tag <> dollar) <> $b|]
           Sbe'Cquote content -> [e|pure (cquote <> content <> sq) <> $b|]
-          Sbe'Sql content -> [e|pure (stringUtf8 content) <> $b|]
+          Sbe'Sql content -> [e|pure (Builder.fromString content) <> $b|]
      in foldr go [e|pure mempty|] sqlBuilder
   encExp <-
     let go a b = case a of

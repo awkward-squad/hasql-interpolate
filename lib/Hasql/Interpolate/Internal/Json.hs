@@ -58,28 +58,28 @@ newtype AsJsonb a = AsJsonb a
 
 -- | Parse a postgres @jsonb@ using 'D.jsonb'
 instance DecodeValue Jsonb where
-  decodeValue = coerce D.jsonb
+  decodeValue = Jsonb <$> D.jsonb
 
 -- | Parse a postgres @json@ using 'D.json'
 instance DecodeValue Json where
-  decodeValue = coerce D.json
+  decodeValue = Json <$> D.json
 
 -- | Parse a postgres @jsonb@ using 'D.jsonbBytes'
 instance DecodeValue JsonbBytes where
-  decodeValue = coerce (D.jsonbBytes Right)
+  decodeValue = D.jsonbBytes (Right . JsonbBytes)
 
 -- | Parse a postgres @json@ using 'D.jsonBytes'
 instance DecodeValue JsonBytes where
-  decodeValue = coerce (D.jsonBytes Right)
+  decodeValue = D.jsonBytes (Right . JsonBytes)
 
 -- | Parse a postgres @json@ to anything that is an instance of
 -- 'Aeson.FromJSON'
-instance Aeson.FromJSON a => DecodeValue (AsJson a) where
+instance (Aeson.FromJSON a) => DecodeValue (AsJson a) where
   decodeValue = AsJson <$> D.jsonBytes (first T.pack . Aeson.eitherDecodeStrict)
 
 -- | Parse a postgres @jsonb@ to anything that is an instance of
 -- 'Aeson.FromJSON'
-instance Aeson.FromJSON a => DecodeValue (AsJsonb a) where
+instance (Aeson.FromJSON a) => DecodeValue (AsJsonb a) where
   decodeValue = AsJsonb <$> D.jsonbBytes (first T.pack . Aeson.eitherDecodeStrict)
 
 -- | Encode an Aeson 'Aeson.Value' to a postgres @json@ using 'E.json'
@@ -99,9 +99,9 @@ instance EncodeValue JsonbBytes where
   encodeValue = coerce E.jsonbBytes
 
 -- | Encode anything that is an instance of 'Aeson.ToJSON' to a postgres @json@
-instance Aeson.ToJSON a => EncodeValue (AsJson a) where
+instance (Aeson.ToJSON a) => EncodeValue (AsJson a) where
   encodeValue = BL.toStrict . Aeson.encode . coerce @_ @a >$< E.jsonBytes
 
 -- | Encode anything that is an instance of 'Aeson.ToJSON' to a postgres @jsonb@
-instance Aeson.ToJSON a => EncodeValue (AsJsonb a) where
+instance (Aeson.ToJSON a) => EncodeValue (AsJsonb a) where
   encodeValue = BL.toStrict . Aeson.encode . coerce @_ @a >$< E.jsonbBytes

@@ -37,8 +37,8 @@ module Hasql.Interpolate
 where
 
 import Control.Monad.Trans.State.Strict (evalState)
-import Data.ByteString.Builder (toLazyByteString)
-import Data.ByteString.Lazy (toStrict)
+import qualified Data.Text.Lazy as TL
+import qualified Data.Text.Lazy.Builder as Builder
 import Hasql.Decoders (Result, foldlRows)
 import Hasql.Interpolate.Internal.CompositeValue
 import Hasql.Interpolate.Internal.Decoder
@@ -50,7 +50,7 @@ import Hasql.Interpolate.Internal.OneRow
 import Hasql.Interpolate.Internal.RowsAffected
 import Hasql.Interpolate.Internal.Sql
 import Hasql.Interpolate.Internal.TH
-import Hasql.Statement (Statement (..))
+import qualified Hasql.Statement as Statement
 
 -- | Interpolate a 'Sql' into a 'Statement' using the 'DecodeResult'
 -- type class to determine the appropriate decoder.
@@ -60,18 +60,21 @@ import Hasql.Statement (Statement (..))
 -- example bonk = interp False [sql| select x, y from t where t.x > #{bonk} |]
 -- @
 interp ::
-  DecodeResult b =>
+  (DecodeResult b) =>
   -- | 'True' if the 'Statement' should be prepared
   Bool ->
   Sql ->
-  Statement () b
+  Statement.Statement () b
 interp prepared = interpWith prepared decodeResult
 
 -- | interpolate then consume with 'foldlRows'
-interpFoldl :: DecodeRow a => Bool -> (b -> a -> b) -> b -> Sql -> Statement () b
+interpFoldl :: (DecodeRow a) => Bool -> (b -> a -> b) -> b -> Sql -> Statement.Statement () b
 interpFoldl prepared f z = interpWith prepared (foldlRows f z decodeRow)
 
 -- | A more general version of 'interp' that allows for passing an
 -- explicit decoder.
-interpWith :: Bool -> Result b -> Sql -> Statement () b
-interpWith prepare decoder (Sql bldr enc) = Statement (toStrict (toLazyByteString (evalState bldr 1))) enc decoder prepare
+interpWith :: Bool -> Result b -> Sql -> Statement.Statement () b
+interpWith prepare decoder (Sql bldr enc) =
+  if prepare
+    then Statement.preparable (TL.toStrict $ Builder.toLazyText $ evalState bldr 1) enc decoder
+    else Statement.unpreparable (TL.toStrict $ Builder.toLazyText $ evalState bldr 1) enc decoder
