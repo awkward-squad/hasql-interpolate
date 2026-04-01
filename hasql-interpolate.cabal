@@ -97,7 +97,7 @@ test-suite unit
   type: exitcode-stdio-1.0
   main-is: Main.hs
   build-depends: base
-               , hasql ^>= 1.9
+               , hasql ^>= 1.10
                , hasql-interpolate
                , template-haskell
                , tasty

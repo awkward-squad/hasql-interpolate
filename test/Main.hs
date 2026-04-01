@@ -12,17 +12,18 @@ module Main where
 
 import Control.Exception
 import Data.Int
+import Data.String (fromString)
 import Data.Text (Text)
+import qualified Data.Text as Text
 import qualified Data.Text.Encoding as Text
 import qualified Database.Postgres.Temp as Tmp
 import GHC.Generics (Generic)
 import qualified Hasql.Connection
-import qualified Hasql.Connection.Setting
-import qualified Hasql.Connection.Setting.Connection
+import qualified Hasql.Connection.Settings
 import Hasql.Decoders (column)
 import Hasql.Interpolate
 import Hasql.Interpolate.Internal.TH
-import qualified Hasql.Session as Hasql
+import qualified Hasql.Session
 import Language.Haskell.TH
 import Test.Tasty
 import Test.Tasty.HUnit
@@ -130,7 +131,7 @@ testComposite getDb = do
     res <- run conn [sql| select * from (values (row(0,0)), (row(1,1)) ) as t |]
     res @?= map OneColumn expected
 
-data T = T Int64 Bool Text deriving stock (Eq, Show)
+data T = T Int32 Bool Text deriving stock (Eq, Show)
 
 instance DecodeRow T where
   decodeRow =
@@ -172,24 +173,24 @@ testNormalizeWhitespace = do
 
 withLocalTransaction :: IO Tmp.DB -> (Hasql.Connection.Connection -> IO a) -> IO a
 withLocalTransaction getDb k =
-  getDb >>= \db -> bracket (either (fail . show) pure =<< Hasql.Connection.acquire [Hasql.Connection.Setting.connection (Hasql.Connection.Setting.Connection.string (Text.decodeUtf8 (Tmp.toConnectionString db)))]) Hasql.Connection.release \conn -> do
+  getDb >>= \db -> bracket (either (fail . show) pure =<< Hasql.Connection.acquire (fromString (Text.unpack (Text.decodeUtf8 (Tmp.toConnectionString db))))) Hasql.Connection.release \conn -> do
     let beginTrans = do
-          Hasql.run (Hasql.statement () (interp False [sql| begin |])) conn >>= \case
+          Hasql.Connection.use conn (Hasql.Session.statement () (interp False [sql| begin |])) >>= \case
             Left err -> fail (show err)
             Right () -> pure ()
         rollbackTrans = do
-          Hasql.run (Hasql.statement () (interp False [sql| rollback |])) conn >>= \case
+          Hasql.Connection.use conn (Hasql.Session.statement () (interp False [sql| rollback |])) >>= \case
             Left err -> fail (show err)
             Right () -> pure ()
     bracket beginTrans (\() -> rollbackTrans) \() -> k conn
 
 run :: DecodeResult a => Hasql.Connection.Connection -> Sql -> IO a
 run conn stmt = do
-  Hasql.run (Hasql.statement () (interp False stmt)) conn >>= \case
+  Hasql.Connection.use conn (Hasql.Session.statement () (interp False stmt)) >>= \case
     Left err -> assertFailure ("Hasql statement unexpectedly failed with error: " <> show err)
     Right x -> pure x
 
-data Point = Point Int64 Int64
+data Point = Point Int32 Int32
   deriving stock (Generic, Eq, Show)
   deriving (DecodeValue) via CompositeValue Point
   deriving anyclass (DecodeRow)
