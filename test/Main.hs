@@ -45,7 +45,8 @@ parserTests =
     "parser"
     [ testCase "quote" testParseQuotes,
       testCase "comment" testParseComment,
-      testCase "param" testParseParam
+      testCase "param" testParseParam,
+      testCase "whitespace" testNormalizeWhitespace
     ]
 
 executionTests :: IO Tmp.DB -> TestTree
@@ -82,9 +83,9 @@ testParseComment = do
   let expected = SqlExpr expectedSqlExpr [] [] 0
       expectedSqlExpr =
         [ Sbe'Sql "content ",
-          Sbe'Sql "\nhello ",
-          Sbe'Sql " world\n",
-          Sbe'Sql " end\n"
+          Sbe'Sql " hello ",
+          Sbe'Sql " world ",
+          Sbe'Sql " end"
         ]
       inputStr =
         unlines
@@ -160,6 +161,14 @@ testSnippet getDb = do
     let xVal :: Int64 = 0
     res <- run conn [sql| select * from (values (0,0), (1,1) ) as t(x,y) where t.x = #{xVal} and ^{snippet} |]
     res @?= expected
+
+testNormalizeWhitespace :: IO ()
+testNormalizeWhitespace = do
+    let t actual expected = parseSqlExpr actual @?= Right (SqlExpr [Sbe'Sql expected] [] [] 0)
+    t "select 1 " "select 1"
+    t " select 1" "select 1"
+    t "select  1" "select 1"
+    t "\n  select  1  \n  where  true  \n  " "select 1 where true"
 
 withLocalTransaction :: IO Tmp.DB -> (Hasql.Connection.Connection -> IO a) -> IO a
 withLocalTransaction getDb k =
