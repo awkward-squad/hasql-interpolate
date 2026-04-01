@@ -1,3 +1,8 @@
+## [1.1.0.0] – March 31, 2026
+
+* Normalize whitespace - multiple consecutive whitespace characters are normalized to a single space.
+* Support `hasql-1.10`
+
 ## [1.0.1.0] - July 16, 2024
 
 * Add `DecodeValue` instance for `ByteString` and `LazyByteString`
