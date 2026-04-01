@@ -28,16 +28,16 @@ newtype CompositeValue a
   = CompositeValue a
 
 instance (Generic a, GToComposite (Rep a)) => DecodeValue (CompositeValue a) where
-  decodeValue = coerce @(Value a) (composite (to <$> gtoComposite))
+  decodeValue = fmap (coerce @a) (record (to <$> gtoComposite))
 
 class GToComposite a where
   gtoComposite :: Composite (a p)
 
-instance GToComposite a => GToComposite (M1 t i a) where
+instance (GToComposite a) => GToComposite (M1 t i a) where
   gtoComposite = M1 <$> gtoComposite
 
 instance (GToComposite a, GToComposite b) => GToComposite (a :*: b) where
   gtoComposite = (:*:) <$> gtoComposite <*> gtoComposite
 
-instance DecodeValue a => GToComposite (K1 i a) where
+instance (DecodeValue a) => GToComposite (K1 i a) where
   gtoComposite = K1 <$> field decodeField
