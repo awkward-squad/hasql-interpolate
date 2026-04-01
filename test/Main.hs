@@ -13,9 +13,12 @@ module Main where
 import Control.Exception
 import Data.Int
 import Data.Text (Text)
+import qualified Data.Text.Encoding as Text
 import qualified Database.Postgres.Temp as Tmp
 import GHC.Generics (Generic)
-import qualified Hasql.Connection as Hasql
+import qualified Hasql.Connection
+import qualified Hasql.Connection.Setting
+import qualified Hasql.Connection.Setting.Connection
 import Hasql.Decoders (column)
 import Hasql.Interpolate
 import Hasql.Interpolate.Internal.TH
@@ -158,9 +161,9 @@ testSnippet getDb = do
     res <- run conn [sql| select * from (values (0,0), (1,1) ) as t(x,y) where t.x = #{xVal} and ^{snippet} |]
     res @?= expected
 
-withLocalTransaction :: IO Tmp.DB -> (Hasql.Connection -> IO a) -> IO a
+withLocalTransaction :: IO Tmp.DB -> (Hasql.Connection.Connection -> IO a) -> IO a
 withLocalTransaction getDb k =
-  getDb >>= \db -> bracket (either (fail . show) pure =<< Hasql.acquire (Tmp.toConnectionString db)) Hasql.release \conn -> do
+  getDb >>= \db -> bracket (either (fail . show) pure =<< Hasql.Connection.acquire [Hasql.Connection.Setting.connection (Hasql.Connection.Setting.Connection.string (Text.decodeUtf8 (Tmp.toConnectionString db)))]) Hasql.Connection.release \conn -> do
     let beginTrans = do
           Hasql.run (Hasql.statement () (interp False [sql| begin |])) conn >>= \case
             Left err -> fail (show err)
@@ -171,7 +174,7 @@ withLocalTransaction getDb k =
             Right () -> pure ()
     bracket beginTrans (\() -> rollbackTrans) \() -> k conn
 
-run :: DecodeResult a => Hasql.Connection -> Sql -> IO a
+run :: DecodeResult a => Hasql.Connection.Connection -> Sql -> IO a
 run conn stmt = do
   Hasql.run (Hasql.statement () (interp False stmt)) conn >>= \case
     Left err -> assertFailure ("Hasql statement unexpectedly failed with error: " <> show err)
