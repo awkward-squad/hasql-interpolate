@@ -86,7 +86,7 @@ testParseComment = do
         [ Sbe'Sql "content ",
           Sbe'Sql " hello ",
           Sbe'Sql " world ",
-          Sbe'Sql " end"
+          Sbe'Sql " end "
         ]
       inputStr =
         unlines
@@ -166,10 +166,10 @@ testSnippet getDb = do
 testNormalizeWhitespace :: IO ()
 testNormalizeWhitespace = do
     let t actual expected = parseSqlExpr actual @?= Right (SqlExpr [Sbe'Sql expected] [] [] 0)
-    t "select 1 " "select 1"
-    t " select 1" "select 1"
+    t "select 1   " "select 1 "
+    t "   select 1" " select 1"
     t "select  1" "select 1"
-    t "\n  select  1  \n  where  true  \n  " "select 1 where true"
+    t "\n  select  1  \n  where  true  \n  " " select 1 where true "
 
 withLocalTransaction :: IO Tmp.DB -> (Hasql.Connection.Connection -> IO a) -> IO a
 withLocalTransaction getDb k =
