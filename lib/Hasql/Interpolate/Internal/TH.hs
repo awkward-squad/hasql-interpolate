@@ -268,15 +268,16 @@ dropTrailingWhitespace :: String -> String
 dropTrailingWhitespace = foldr go []
   where
     go x acc
-      | isSpace x && isTailSpace acc = acc
+      | isSpace x = case acc of
+          [] -> [' ']
+          xs@[' '] -> xs
+          xs -> x:xs -- we are no longer at tail
       | otherwise = x:acc
-    isTailSpace [x] | isSpace x = True
-    isTailSpace _ = False
 
 -- Drop leading whiltespace except one.
 dropLeadingWhitespace :: String -> String
 dropLeadingWhitespace s@(x:xs)
-  | isSpace x = x : dropWhile isSpace xs
+  | isSpace x = ' ' : dropWhile isSpace xs
   | otherwise = s
 dropLeadingWhitespace [] = []
 

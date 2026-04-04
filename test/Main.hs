@@ -46,6 +46,8 @@ parserTests =
     "parser"
     [ testCase "quote" testParseQuotes,
       testCase "comment" testParseComment,
+      testCase "end comment" testParseEndComment,
+      testCase "end multiline comment" testParseEndMultiComment,
       testCase "param" testParseParam,
       testCase "whitespace" testNormalizeWhitespace
     ]
@@ -95,6 +97,37 @@ testParseComment = do
             "/* comment",
             "blerg /* nested comment */",
             "*/ end"
+          ]
+  parseSqlExpr inputStr @?= Right expected
+
+testParseEndComment :: IO ()
+testParseEndComment = do
+  let expected = SqlExpr expectedSqlExpr [] [] 0
+      expectedSqlExpr =
+        [ Sbe'Sql "select 1 " ]
+      inputStr =
+        unlines
+          [ "select 1 ",
+            " -- comment",
+            "\n\n"
+          ]
+  parseSqlExpr inputStr @?= Right expected
+
+testParseEndMultiComment :: IO ()
+testParseEndMultiComment = do
+  let expected = SqlExpr expectedSqlExpr [] [] 0
+      expectedSqlExpr =
+        [ Sbe'Sql "select 1 ",
+          Sbe'Sql " "
+        ]
+      inputStr =
+        unlines
+          [ "select 1",
+            "\n",
+            "/* comment",
+            "blerg ",
+            "*/",
+            "\n\n"
           ]
   parseSqlExpr inputStr @?= Right expected
 
