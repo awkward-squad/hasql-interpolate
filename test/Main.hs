@@ -104,7 +104,7 @@ testParseEndComment :: IO ()
 testParseEndComment = do
   let expected = SqlExpr expectedSqlExpr [] [] 0
       expectedSqlExpr =
-        [ Sbe'Sql "select 1 " ]
+        [ Sbe'Sql "select 1 ", Sbe'Sql " " ]
       inputStr =
         unlines
           [ "select 1 ",
