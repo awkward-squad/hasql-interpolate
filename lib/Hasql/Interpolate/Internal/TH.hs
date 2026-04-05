@@ -326,16 +326,17 @@ compileSqlExpr (SqlExpr sqlBuilder enc spliceBindings bindCount) = do
           )
           spliceBindings
   sqlBuilderExp <-
-    let go a b = case a of
-          Sbe'Var i -> [e|Ap $(varE (nameArr ! i)) <> $b|]
-          Sbe'Param -> [e|Ap addParam <> $b|]
-          Sbe'Quote content -> [e|pure (sq <> Builder.fromString content <> sq) <> $b|]
-          Sbe'Ident content -> [e|pure (dq <> Builder.fromString content <> dq) <> $b|]
-          Sbe'DollarQuote tag content -> [e|pure (dollar <> Builder.fromString tag <> dollar <> Builder.fromString content <> dollar <> Builder.fromString tag <> dollar) <> $b|]
-          Sbe'Cquote content -> [e|pure (cquote <> content <> sq) <> $b|]
-          Sbe'Whitespace -> [e|pure space <> $b|]
-          Sbe'Sql content -> [e|pure (Builder.fromString content) <> $b|]
-     in foldr go [e|pure mempty|] sqlBuilder
+    let go :: SqlBuilderExp -> (Q Exp, Bool) -> (Q Exp, Bool)
+        go a (b, omitWhitespace) = case a of
+          Sbe'Var i -> ([e|Ap $(varE (nameArr ! i)) <> $b|], False)
+          Sbe'Param -> ([e|Ap addParam <> $b|], False)
+          Sbe'Quote content -> ([e|pure (sq <> Builder.fromString content <> sq) <> $b|], False)
+          Sbe'Ident content -> ([e|pure (dq <> Builder.fromString content <> dq) <> $b|], False)
+          Sbe'DollarQuote tag content -> ([e|pure (dollar <> Builder.fromString tag <> dollar <> Builder.fromString content <> dollar <> Builder.fromString tag <> dollar) <> $b|], undefined)
+          Sbe'Cquote content -> ([e|pure (cquote <> content <> sq) <> $b|], False)
+          Sbe'Whitespace -> (if omitWhitespace then b else [e|pure space <> $b|], True)
+          Sbe'Sql content -> ([e|pure (Builder.fromString content) <> $b|], False)
+     in fst (foldr go ([e|pure mempty|], False) sqlBuilder)
   encExp <-
     let go a b = case a of
           Pe'Exp x -> [e|($(pure x) >$ E.param encodeField) <> $b|]
