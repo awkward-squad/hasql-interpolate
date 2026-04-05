@@ -127,20 +127,9 @@ sqlExprParser = go
       pure next
 
     appendSqlBuilderExp :: SqlBuilderExp -> Parser ()
-    appendSqlBuilderExp x =
-      case x of
-        -- special case: trim trailing whitespace if at the very end
-        Sbe'Sql s -> do
-          st <- get
-          put
-            st
-              { ps'sqlBuilderExp = \case
-                  [] -> ps'sqlBuilderExp st [Sbe'Sql (dropTrailingWhitespace s)]
-                  xs -> ps'sqlBuilderExp st (x : xs)
-              }
-        _ -> do
-          st <- get
-          put st {ps'sqlBuilderExp = ps'sqlBuilderExp st . (x :)}
+    appendSqlBuilderExp x = do
+      st <- get
+      put st {ps'sqlBuilderExp = ps'sqlBuilderExp st . (x :)}
 
     appendEncoder :: ParamEncoder -> Parser ()
     appendEncoder x = do
@@ -274,9 +263,23 @@ normalizeWhitespace = \case
   x : xs -> x : normalizeWhitespace xs
   "" -> ""
 
+-- Drop trailing whitespace except one.
 dropTrailingWhitespace :: String -> String
-dropTrailingWhitespace =
-  reverse . dropWhile isSpace . reverse
+dropTrailingWhitespace = foldr go []
+  where
+    go x acc
+      | isSpace x = case acc of
+          [] -> [' ']
+          xs@[' '] -> xs
+          xs -> x:xs -- we are no longer at tail
+      | otherwise = x:acc
+
+-- Drop leading whiltespace except one.
+dropLeadingWhitespace :: String -> String
+dropLeadingWhitespace s@(x:xs)
+  | isSpace x = ' ' : dropWhile isSpace xs
+  | otherwise = s
+dropLeadingWhitespace [] = []
 
 addParam :: State Int Builder
 addParam = state \i ->
@@ -285,7 +288,8 @@ addParam = state \i ->
 
 parseSqlExpr :: String -> Either (ParseErrorBundle String Void) SqlExpr
 parseSqlExpr str = do
-  ps <- runParser (execStateT sqlExprParser (ParserState id id id 0)) "" (dropWhile isSpace str)
+  ps <- runParser (execStateT sqlExprParser (ParserState id id id 0)) ""
+    (dropLeadingWhitespace $ dropTrailingWhitespace str)
   pure
     SqlExpr
       { sqlBuilderExp = ps'sqlBuilderExp ps [],

@@ -46,6 +46,8 @@ parserTests =
     "parser"
     [ testCase "quote" testParseQuotes,
       testCase "comment" testParseComment,
+      testCase "end comment" testParseEndComment,
+      testCase "end multiline comment" testParseEndMultiComment,
       testCase "param" testParseParam,
       testCase "whitespace" testNormalizeWhitespace
     ]
@@ -86,7 +88,7 @@ testParseComment = do
         [ Sbe'Sql "content ",
           Sbe'Sql " hello ",
           Sbe'Sql " world ",
-          Sbe'Sql " end"
+          Sbe'Sql " end "
         ]
       inputStr =
         unlines
@@ -95,6 +97,37 @@ testParseComment = do
             "/* comment",
             "blerg /* nested comment */",
             "*/ end"
+          ]
+  parseSqlExpr inputStr @?= Right expected
+
+testParseEndComment :: IO ()
+testParseEndComment = do
+  let expected = SqlExpr expectedSqlExpr [] [] 0
+      expectedSqlExpr =
+        [ Sbe'Sql "select 1 " ]
+      inputStr =
+        unlines
+          [ "select 1 ",
+            " -- comment",
+            "\n\n"
+          ]
+  parseSqlExpr inputStr @?= Right expected
+
+testParseEndMultiComment :: IO ()
+testParseEndMultiComment = do
+  let expected = SqlExpr expectedSqlExpr [] [] 0
+      expectedSqlExpr =
+        [ Sbe'Sql "select 1 ",
+          Sbe'Sql " "
+        ]
+      inputStr =
+        unlines
+          [ "select 1",
+            "\n",
+            "/* comment",
+            "blerg ",
+            "*/",
+            "\n\n"
           ]
   parseSqlExpr inputStr @?= Right expected
 
@@ -166,10 +199,10 @@ testSnippet getDb = do
 testNormalizeWhitespace :: IO ()
 testNormalizeWhitespace = do
     let t actual expected = parseSqlExpr actual @?= Right (SqlExpr [Sbe'Sql expected] [] [] 0)
-    t "select 1 " "select 1"
-    t " select 1" "select 1"
+    t "select 1   " "select 1 "
+    t "   select 1" " select 1"
     t "select  1" "select 1"
-    t "\n  select  1  \n  where  true  \n  " "select 1 where true"
+    t "\n  select  1  \n  where  true  \n  " " select 1 where true "
 
 withLocalTransaction :: IO Tmp.DB -> (Hasql.Connection.Connection -> IO a) -> IO a
 withLocalTransaction getDb k =
