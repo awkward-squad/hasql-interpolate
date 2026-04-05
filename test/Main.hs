@@ -70,13 +70,13 @@ testParseQuotes = do
   let expected = SqlExpr expectedSqlExpr [] [] 0
       expectedSqlExpr =
         [ Sbe'Quote "#{bonk}",
-          Sbe'Sql " ",
+          Sbe'Whitespace,
           Sbe'Quote "^{z''onk}",
-          Sbe'Sql " ",
+          Sbe'Whitespace,
           Sbe'Ident "#{k\"\"onk}",
-          Sbe'Sql " ",
+          Sbe'Whitespace,
           Sbe'DollarQuote "tag" "#{kiplonk}",
-          Sbe'Sql " ",
+          Sbe'Whitespace,
           Sbe'Cquote "newline \\n escaped \\'string\\'"
         ]
   parseSqlExpr "'#{bonk}' '^{z''onk}' \"#{k\"\"onk}\" $tag$#{kiplonk}$tag$ E'newline \\n escaped \\'string\\''" @?= Right expected
@@ -85,10 +85,17 @@ testParseComment :: IO ()
 testParseComment = do
   let expected = SqlExpr expectedSqlExpr [] [] 0
       expectedSqlExpr =
-        [ Sbe'Sql "content ",
-          Sbe'Sql " hello ",
-          Sbe'Sql " world ",
-          Sbe'Sql " end "
+        [ Sbe'Sql "content",
+          Sbe'Whitespace,
+          Sbe'Whitespace,
+          Sbe'Sql "hello",
+          Sbe'Whitespace,
+          Sbe'Whitespace,
+          Sbe'Sql "world",
+          Sbe'Whitespace,
+          Sbe'Whitespace,
+          Sbe'Sql "end",
+          Sbe'Whitespace
         ]
       inputStr =
         unlines
@@ -104,7 +111,7 @@ testParseEndComment :: IO ()
 testParseEndComment = do
   let expected = SqlExpr expectedSqlExpr [] [] 0
       expectedSqlExpr =
-        [ Sbe'Sql "select 1 ", Sbe'Sql " " ]
+        [ Sbe'Sql "select", Sbe'Whitespace, Sbe'Sql "1", Sbe'Whitespace, Sbe'Whitespace ]
       inputStr =
         unlines
           [ "select 1 ",
@@ -117,8 +124,11 @@ testParseEndMultiComment :: IO ()
 testParseEndMultiComment = do
   let expected = SqlExpr expectedSqlExpr [] [] 0
       expectedSqlExpr =
-        [ Sbe'Sql "select 1 ",
-          Sbe'Sql " "
+        [ Sbe'Sql "select",
+          Sbe'Whitespace,
+          Sbe'Sql "1",
+          Sbe'Whitespace,
+          Sbe'Whitespace
         ]
       inputStr =
         unlines
@@ -135,7 +145,7 @@ testParseParam :: IO ()
 testParseParam = do
   let expected =
         SqlExpr
-          [Sbe'Param, Sbe'Sql " ", Sbe'Param]
+          [Sbe'Param, Sbe'Whitespace, Sbe'Param]
           [Pe'Exp (VarE (mkName "x")), Pe'Exp (LitE (IntegerL 2))]
           []
           0
@@ -198,11 +208,11 @@ testSnippet getDb = do
 
 testNormalizeWhitespace :: IO ()
 testNormalizeWhitespace = do
-    let t actual expected = parseSqlExpr actual @?= Right (SqlExpr [Sbe'Sql expected] [] [] 0)
-    t "select 1   " "select 1 "
-    t "   select 1" " select 1"
-    t "select  1" "select 1"
-    t "\n  select  1  \n  where  true  \n  " " select 1 where true "
+    let t actual expected = parseSqlExpr actual @?= Right (SqlExpr expected [] [] 0)
+    t "select 1   " [Sbe'Sql "select", Sbe'Whitespace, Sbe'Sql "1", Sbe'Whitespace]
+    t "   select 1" [Sbe'Whitespace, Sbe'Sql "select", Sbe'Whitespace, Sbe'Sql "1"]
+    t "select  1" [Sbe'Sql "select", Sbe'Whitespace, Sbe'Sql "1"]
+    t "\n  select  1  \n  where  true  \n  " [Sbe'Whitespace, Sbe'Sql "select", Sbe'Whitespace, Sbe'Sql "1", Sbe'Whitespace, Sbe'Sql "where", Sbe'Whitespace, Sbe'Sql "true", Sbe'Whitespace]
 
 withLocalTransaction :: IO Tmp.DB -> (Hasql.Connection.Connection -> IO a) -> IO a
 withLocalTransaction getDb k =

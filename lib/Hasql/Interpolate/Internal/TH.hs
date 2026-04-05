@@ -48,6 +48,7 @@ import Text.Megaparsec
     notFollowedBy,
     runParser,
     single,
+    takeWhile1P,
     takeWhileP,
     try,
   )
@@ -67,6 +68,7 @@ data SqlBuilderExp
   | Sbe'Ident String
   | Sbe'DollarQuote String String
   | Sbe'Cquote String
+  | Sbe'Whitespace
   | Sbe'Sql String
   deriving stock (Show, Eq)
 
@@ -94,6 +96,9 @@ sq = "'"
 dq :: Builder
 dq = "\""
 
+space :: Builder
+space = " "
+
 data ParserState = ParserState
   { ps'sqlBuilderExp :: [SqlBuilderExp] -> [SqlBuilderExp],
     ps'paramEncoder :: [ParamEncoder] -> [ParamEncoder],
@@ -115,6 +120,7 @@ sqlExprParser = go
         <|> splice
         <|> comment
         <|> multilineComment
+        <|> whitespace
         <|> someSql
         <|> eof
 
@@ -245,23 +251,24 @@ sqlExprParser = go
         '^',
         '$',
         '-',
-        '/'
+        '/',
+        ' ',
+        '\t',
+        '\n',
+        '\f',
+        '\r'
       ]
+
+    whitespace = do
+      _ <- takeWhile1P (Just "whitespace") isSpace
+      appendSqlBuilderExp Sbe'Whitespace
+      go
 
     someSql = do
       s <- anySingle
       content <- takeWhileP (Just "sql") (\c -> IS.notMember (fromEnum c) breakCharsIS)
-      appendSqlBuilderExp (Sbe'Sql (normalizeWhitespace (s : content)))
+      appendSqlBuilderExp (Sbe'Sql (s : content))
       go
-
--- Everywhere in a string, collapse consecutive runs of whitespace to a single space
---
--- normalizeWhitespace "   foo\n  \n   \n \t\t bar   " = " foo bar "
-normalizeWhitespace :: String -> String
-normalizeWhitespace = \case
-  x : xs | isSpace x -> ' ' : normalizeWhitespace (dropWhile isSpace xs)
-  x : xs -> x : normalizeWhitespace xs
-  "" -> ""
 
 addParam :: State Int Builder
 addParam = state \i ->
@@ -326,6 +333,7 @@ compileSqlExpr (SqlExpr sqlBuilder enc spliceBindings bindCount) = do
           Sbe'Ident content -> [e|pure (dq <> Builder.fromString content <> dq) <> $b|]
           Sbe'DollarQuote tag content -> [e|pure (dollar <> Builder.fromString tag <> dollar <> Builder.fromString content <> dollar <> Builder.fromString tag <> dollar) <> $b|]
           Sbe'Cquote content -> [e|pure (cquote <> content <> sq) <> $b|]
+          Sbe'Whitespace -> [e|pure space <> $b|]
           Sbe'Sql content -> [e|pure (Builder.fromString content) <> $b|]
      in foldr go [e|pure mempty|] sqlBuilder
   encExp <-
