@@ -1,3 +1,7 @@
+## [1.1.0.1] – April 14, 2026
+
+* Fix bug in normalizing whitespace
+
 ## [1.1.0.0] – March 31, 2026
 
 * Normalize whitespace - multiple consecutive whitespace characters are normalized to a single space.
