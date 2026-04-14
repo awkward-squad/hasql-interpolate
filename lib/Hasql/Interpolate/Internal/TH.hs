@@ -48,6 +48,7 @@ import Text.Megaparsec
     notFollowedBy,
     runParser,
     single,
+    takeWhile1P,
     takeWhileP,
     try,
   )
@@ -67,6 +68,7 @@ data SqlBuilderExp
   | Sbe'Ident String
   | Sbe'DollarQuote String String
   | Sbe'Cquote String
+  | Sbe'Whitespace
   | Sbe'Sql String
   deriving stock (Show, Eq)
 
@@ -94,6 +96,9 @@ sq = "'"
 dq :: Builder
 dq = "\""
 
+space :: Builder
+space = " "
+
 data ParserState = ParserState
   { ps'sqlBuilderExp :: [SqlBuilderExp] -> [SqlBuilderExp],
     ps'paramEncoder :: [ParamEncoder] -> [ParamEncoder],
@@ -115,6 +120,7 @@ sqlExprParser = go
         <|> splice
         <|> comment
         <|> multilineComment
+        <|> whitespace
         <|> someSql
         <|> eof
 
@@ -245,41 +251,24 @@ sqlExprParser = go
         '^',
         '$',
         '-',
-        '/'
+        '/',
+        ' ',
+        '\t',
+        '\n',
+        '\f',
+        '\r'
       ]
+
+    whitespace = do
+      _ <- takeWhile1P (Just "whitespace") isSpace
+      appendSqlBuilderExp Sbe'Whitespace
+      go
 
     someSql = do
       s <- anySingle
       content <- takeWhileP (Just "sql") (\c -> IS.notMember (fromEnum c) breakCharsIS)
-      appendSqlBuilderExp (Sbe'Sql (normalizeWhitespace (s : content)))
+      appendSqlBuilderExp (Sbe'Sql (s : content))
       go
-
--- Everywhere in a string, collapse consecutive runs of whitespace to a single space
---
--- normalizeWhitespace "   foo\n  \n   \n \t\t bar   " = " foo bar "
-normalizeWhitespace :: String -> String
-normalizeWhitespace = \case
-  x : xs | isSpace x -> ' ' : normalizeWhitespace (dropWhile isSpace xs)
-  x : xs -> x : normalizeWhitespace xs
-  "" -> ""
-
--- Drop trailing whitespace except one.
-dropTrailingWhitespace :: String -> String
-dropTrailingWhitespace = foldr go []
-  where
-    go x acc
-      | isSpace x = case acc of
-          [] -> [' ']
-          xs@[' '] -> xs
-          xs -> x:xs -- we are no longer at tail
-      | otherwise = x:acc
-
--- Drop leading whiltespace except one.
-dropLeadingWhitespace :: String -> String
-dropLeadingWhitespace s@(x:xs)
-  | isSpace x = ' ' : dropWhile isSpace xs
-  | otherwise = s
-dropLeadingWhitespace [] = []
 
 addParam :: State Int Builder
 addParam = state \i ->
@@ -288,8 +277,7 @@ addParam = state \i ->
 
 parseSqlExpr :: String -> Either (ParseErrorBundle String Void) SqlExpr
 parseSqlExpr str = do
-  ps <- runParser (execStateT sqlExprParser (ParserState id id id 0)) ""
-    (dropLeadingWhitespace $ dropTrailingWhitespace str)
+  ps <- runParser (execStateT sqlExprParser (ParserState id id id 0)) "" str
   pure
     SqlExpr
       { sqlBuilderExp = ps'sqlBuilderExp ps [],
@@ -338,15 +326,17 @@ compileSqlExpr (SqlExpr sqlBuilder enc spliceBindings bindCount) = do
           )
           spliceBindings
   sqlBuilderExp <-
-    let go a b = case a of
-          Sbe'Var i -> [e|Ap $(varE (nameArr ! i)) <> $b|]
-          Sbe'Param -> [e|Ap addParam <> $b|]
-          Sbe'Quote content -> [e|pure (sq <> Builder.fromString content <> sq) <> $b|]
-          Sbe'Ident content -> [e|pure (dq <> Builder.fromString content <> dq) <> $b|]
-          Sbe'DollarQuote tag content -> [e|pure (dollar <> Builder.fromString tag <> dollar <> Builder.fromString content <> dollar <> Builder.fromString tag <> dollar) <> $b|]
-          Sbe'Cquote content -> [e|pure (cquote <> content <> sq) <> $b|]
-          Sbe'Sql content -> [e|pure (Builder.fromString content) <> $b|]
-     in foldr go [e|pure mempty|] sqlBuilder
+    let go :: SqlBuilderExp -> (Q Exp, Bool) -> (Q Exp, Bool)
+        go a (b, omitWhitespace) = case a of
+          Sbe'Var i -> ([e|Ap $(varE (nameArr ! i)) <> $b|], False)
+          Sbe'Param -> ([e|Ap addParam <> $b|], False)
+          Sbe'Quote content -> ([e|pure (sq <> Builder.fromString content <> sq) <> $b|], False)
+          Sbe'Ident content -> ([e|pure (dq <> Builder.fromString content <> dq) <> $b|], False)
+          Sbe'DollarQuote tag content -> ([e|pure (dollar <> Builder.fromString tag <> dollar <> Builder.fromString content <> dollar <> Builder.fromString tag <> dollar) <> $b|], undefined)
+          Sbe'Cquote content -> ([e|pure (cquote <> content <> sq) <> $b|], False)
+          Sbe'Whitespace -> (if omitWhitespace then b else [e|pure space <> $b|], True)
+          Sbe'Sql content -> ([e|pure (Builder.fromString content) <> $b|], False)
+     in fst (foldr go ([e|pure mempty|], False) sqlBuilder)
   encExp <-
     let go a b = case a of
           Pe'Exp x -> [e|($(pure x) >$ E.param encodeField) <> $b|]

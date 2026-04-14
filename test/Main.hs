@@ -11,17 +11,21 @@
 module Main where
 
 import Control.Exception
+import Control.Monad.Trans.State.Strict (evalState)
 import Data.Int
 import Data.String (fromString)
 import Data.Text (Text)
 import qualified Data.Text as Text
 import qualified Data.Text.Encoding as Text
+import qualified Data.Text.Lazy as TL
+import qualified Data.Text.Lazy.Builder as Builder
 import qualified Database.Postgres.Temp as Tmp
 import GHC.Generics (Generic)
 import qualified Hasql.Connection
 import qualified Hasql.Connection.Settings
 import Hasql.Decoders (column)
 import Hasql.Interpolate
+import Hasql.Interpolate.Internal.Sql
 import Hasql.Interpolate.Internal.TH
 import qualified Hasql.Session
 import Language.Haskell.TH
@@ -70,41 +74,34 @@ testParseQuotes = do
   let expected = SqlExpr expectedSqlExpr [] [] 0
       expectedSqlExpr =
         [ Sbe'Quote "#{bonk}",
-          Sbe'Sql " ",
+          Sbe'Whitespace,
           Sbe'Quote "^{z''onk}",
-          Sbe'Sql " ",
+          Sbe'Whitespace,
           Sbe'Ident "#{k\"\"onk}",
-          Sbe'Sql " ",
+          Sbe'Whitespace,
           Sbe'DollarQuote "tag" "#{kiplonk}",
-          Sbe'Sql " ",
+          Sbe'Whitespace,
           Sbe'Cquote "newline \\n escaped \\'string\\'"
         ]
   parseSqlExpr "'#{bonk}' '^{z''onk}' \"#{k\"\"onk}\" $tag$#{kiplonk}$tag$ E'newline \\n escaped \\'string\\''" @?= Right expected
 
 testParseComment :: IO ()
 testParseComment = do
-  let expected = SqlExpr expectedSqlExpr [] [] 0
-      expectedSqlExpr =
-        [ Sbe'Sql "content ",
-          Sbe'Sql " hello ",
-          Sbe'Sql " world ",
-          Sbe'Sql " end "
-        ]
-      inputStr =
-        unlines
-          [ "content -- trailing comment",
-            "hello /* / comment * */ world",
-            "/* comment",
-            "blerg /* nested comment */",
-            "*/ end"
-          ]
-  parseSqlExpr inputStr @?= Right expected
+  sqlToText
+    [sql|
+      content -- trailing comment
+      hello /* / comment * */ world
+      /* comment
+      blerg /* nested comment */
+      */ end
+    |]
+    @?= " content hello world end "
 
 testParseEndComment :: IO ()
 testParseEndComment = do
   let expected = SqlExpr expectedSqlExpr [] [] 0
       expectedSqlExpr =
-        [ Sbe'Sql "select 1 " ]
+        [Sbe'Sql "select", Sbe'Whitespace, Sbe'Sql "1", Sbe'Whitespace, Sbe'Whitespace]
       inputStr =
         unlines
           [ "select 1 ",
@@ -115,27 +112,21 @@ testParseEndComment = do
 
 testParseEndMultiComment :: IO ()
 testParseEndMultiComment = do
-  let expected = SqlExpr expectedSqlExpr [] [] 0
-      expectedSqlExpr =
-        [ Sbe'Sql "select 1 ",
-          Sbe'Sql " "
-        ]
-      inputStr =
-        unlines
-          [ "select 1",
-            "\n",
-            "/* comment",
-            "blerg ",
-            "*/",
-            "\n\n"
-          ]
-  parseSqlExpr inputStr @?= Right expected
+  sqlToText
+    [sql|
+      select 1
+      /* comment
+      blerg
+      */
+
+    |]
+    @?= " select 1 "
 
 testParseParam :: IO ()
 testParseParam = do
   let expected =
         SqlExpr
-          [Sbe'Param, Sbe'Sql " ", Sbe'Param]
+          [Sbe'Param, Sbe'Whitespace, Sbe'Param]
           [Pe'Exp (VarE (mkName "x")), Pe'Exp (LitE (IntegerL 2))]
           []
           0
@@ -198,11 +189,17 @@ testSnippet getDb = do
 
 testNormalizeWhitespace :: IO ()
 testNormalizeWhitespace = do
-    let t actual expected = parseSqlExpr actual @?= Right (SqlExpr [Sbe'Sql expected] [] [] 0)
-    t "select 1   " "select 1 "
-    t "   select 1" " select 1"
-    t "select  1" "select 1"
-    t "\n  select  1  \n  where  true  \n  " " select 1 where true "
+  let t actual expected = parseSqlExpr actual @?= Right (SqlExpr expected [] [] 0)
+  sqlToText [sql|select 1   |] @?= "select 1 "
+  sqlToText [sql|   select 1|] @?= " select 1"
+  sqlToText [sql|select  1|] @?= "select 1"
+  sqlToText
+    [sql|
+    select  1
+      where   true
+    |]
+    @?= " select 1 where true "
+  sqlToText ([sql|  select  |] <> [sql|  1  |]) @?= " select  1 "
 
 withLocalTransaction :: IO Tmp.DB -> (Hasql.Connection.Connection -> IO a) -> IO a
 withLocalTransaction getDb k =
@@ -217,11 +214,15 @@ withLocalTransaction getDb k =
             Right () -> pure ()
     bracket beginTrans (\() -> rollbackTrans) \() -> k conn
 
-run :: DecodeResult a => Hasql.Connection.Connection -> Sql -> IO a
+run :: (DecodeResult a) => Hasql.Connection.Connection -> Sql -> IO a
 run conn stmt = do
   Hasql.Connection.use conn (Hasql.Session.statement () (interp False stmt)) >>= \case
     Left err -> assertFailure ("Hasql statement unexpectedly failed with error: " <> show err)
     Right x -> pure x
+
+sqlToText :: Sql -> Text
+sqlToText (Sql bldr _) =
+  TL.toStrict $ Builder.toLazyText $ evalState bldr 1
 
 data Point = Point Int32 Int32
   deriving stock (Generic, Eq, Show)
