@@ -1,3 +1,7 @@
+## Unreleased
+
+* Switch splice parser from `haskell-src-meta` to `ghc-hs-meta`. The previous parser silently misparsed `OverloadedRecordDot` syntax inside `#{...}` splices (e.g. `#{user.name}`) as the function-composition operator, leading to confusing type errors or wrong queries. The new parser uses GHC's own frontend with `OverloadedRecordDot`, `OverloadedLabels`, `OverloadedRecordUpdate`, and `TypeApplications` enabled, emitting `TH.GetFieldE` directly. Splice consumers using `#{x.y}` need `OverloadedRecordDot` enabled in their own module. Now requires GHC ≥ 9.2 (for `template-haskell-2.18`).
+
 ## [1.1.0.1] – April 14, 2026
 
 * Fix bug in normalizing whitespace

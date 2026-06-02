@@ -53,7 +53,9 @@ parserTests =
       testCase "end comment" testParseEndComment,
       testCase "end multiline comment" testParseEndMultiComment,
       testCase "param" testParseParam,
-      testCase "whitespace" testNormalizeWhitespace
+      testCase "whitespace" testNormalizeWhitespace,
+      testCase "record-dot in splice" testRecordDot,
+      testCase "chained record-dot in splice" testRecordDotChained
     ]
 
 executionTests :: IO Tmp.DB -> TestTree
@@ -131,6 +133,33 @@ testParseParam = do
           []
           0
   parseSqlExpr "#{x} #{2}" @?= Right expected
+
+-- Regression: OverloadedRecordDot inside #{...}. With the previous
+-- haskell-src-meta/haskell-src-exts parser this misparsed silently as
+-- composition (`pid . toText`); ghc-hs-meta uses GHC's real parser
+-- with OverloadedRecordDot enabled, producing TH's GetFieldE node
+-- directly.
+testRecordDot :: IO ()
+testRecordDot =
+  parseSqlExpr "#{pid.toText}"
+    @?= Right
+      ( SqlExpr
+          [Sbe'Param]
+          [Pe'Exp (GetFieldE (VarE (mkName "pid")) "toText")]
+          []
+          0
+      )
+
+testRecordDotChained :: IO ()
+testRecordDotChained =
+  parseSqlExpr "#{user.project.name}"
+    @?= Right
+      ( SqlExpr
+          [Sbe'Param]
+          [Pe'Exp (GetFieldE (GetFieldE (VarE (mkName "user")) "project") "name")]
+          []
+          0
+      )
 
 testBasic :: IO Tmp.DB -> IO ()
 testBasic getDb = do

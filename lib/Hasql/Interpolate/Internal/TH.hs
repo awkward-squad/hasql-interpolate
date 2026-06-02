@@ -35,7 +35,7 @@ import Data.Void
 import qualified Hasql.Encoders as E
 import Hasql.Interpolate.Internal.Encoder (EncodeField (..))
 import Hasql.Interpolate.Internal.Sql
-import Language.Haskell.Meta (parseExp)
+import Language.Haskell.Meta.Parse (parseExp)
 import Language.Haskell.TH
 import Language.Haskell.TH.Quote
 import Text.Megaparsec
@@ -225,7 +225,7 @@ sqlExprParser = go
       _ <- single '}'
       alpha <-
         case parseExp content of
-          Left err -> fail err
+          Left (line, col, err) -> fail (show line <> ":" <> show col <> ": " <> err)
           Right x -> pure x
       appendEncoder (Pe'Exp alpha)
       appendSqlBuilderExp Sbe'Param
@@ -237,7 +237,7 @@ sqlExprParser = go
       _ <- single '}'
       alpha <-
         case parseExp content of
-          Left err -> fail err
+          Left (line, col, err) -> fail (show line <> ":" <> show col <> ": " <> err)
           Right x -> pure x
       addSpliceBinding alpha
       go
